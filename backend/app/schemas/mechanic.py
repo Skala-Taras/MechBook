@@ -1,7 +1,7 @@
 from pydantic import BaseModel, constr, EmailStr
 
 
-class UserCreate(BaseModel):
+class MechanicCreate(BaseModel):
     email: EmailStr
     name: str
     password: constr(
@@ -9,11 +9,11 @@ class UserCreate(BaseModel):
         max_length=15
     )
 
-class UserLogin(BaseModel):
+class MechanicLogin(BaseModel):
     email: EmailStr
     password: str
 
-class UserOut(BaseModel):
+class MechanicOut(BaseModel):
     id: int
     email: str
 
