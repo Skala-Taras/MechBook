@@ -10,8 +10,7 @@ class Vehicles(Base):
     model: str = Column(String, index=True, nullable=False)
     vin: str = Column(String(length=17), index=True, nullable=True, unique=True)
     last_view_data = Column(DateTime)
-    client_id: int = Column(Integer, ForeignKey="clients.id", nullable=False)
-    repair_id: int = Column(Integer, ForeignKey="repair.id", nullable=False)
+    client_id: int = Column(Integer, ForeignKey("clients.id"), nullable=False)
 
     #Reletionship
     repairs = relationship("Repairs", back_populates="vehicle")

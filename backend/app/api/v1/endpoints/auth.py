@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.post("/register", response_model=MechanicOut)
 def register(mechanic: MechanicCreate, db: Session = Depends(get_db)):
-    if crud_mechanic.get_mechanic_by_email(db, mechanic.email):
+    if crud_mechanic.get_mechanic_by_email(db, str(mechanic.email)):
         raise HTTPException(status_code=400, detail="Email already registered")
     created_mechanic = crud_mechanic.create_mechanic(db, mechanic)
     return MechanicOut.model_validate(created_mechanic)
@@ -40,7 +40,7 @@ def login(mechanic: MechanicLogin, db: Session = Depends(get_db)):
         httponly=True,
         secure=False,
         samesite="Lax",
-        max_age=60
+        max_age=60*60
     )
     return response
 
