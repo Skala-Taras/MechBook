@@ -1,1 +1,0 @@
-# For bd schemas
