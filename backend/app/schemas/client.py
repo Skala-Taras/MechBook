@@ -8,3 +8,22 @@ class ClientCreate(BaseModel):
     last_name: str
     phone: Optional[str] = None
     pesel: Optional[constr(max_length=11, min_length=11)] = None
+
+
+class ClientBasicInfo(BaseModel):
+    id: int
+    name: str
+    last_name: str
+
+    class Config:
+        from_attributes = True
+
+class ClientExtendedInfo(BaseModel):
+    id: int
+    name: str
+    last_name: str
+    phone: Optional[str] = None
+    pesel: Optional[str] = None
+
+    class Config:
+        from_attributes = True
