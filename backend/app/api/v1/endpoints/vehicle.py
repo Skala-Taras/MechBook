@@ -6,20 +6,21 @@ from fastapi.params import Depends
 from sqlalchemy.orm import Session
 
 from app.crud.client import create_client
-from app.crud.vehicle import create_vehicle, get_extended_vehicle_and_client_data, get_recently_used_vehicles
+from app.crud.vehicle import create_vehicle, get_extended_vehicle_and_client_data, get_recently_used_vehicles, \
+    change_data_in_vehicle, db_delete_vehicle
 from app.dependencies.db import get_db
 from app.dependencies.jwt import get_current_mechanic_id_from_cookie
 from app.models.vehicles import Vehicles
-from app.schemas.vehicle import VehicleCreate, VehicleExtendedInfo, VehicleBasicInfo
+from app.schemas.vehicle import VehicleCreate, VehicleExtendedInfo, VehicleBasicInfo, VehicleEditData
 
 router = APIRouter()
 
 
-@router.post("/add_vehicle", status_code=201)
+@router.post("/vehicles/add_vehicle", status_code=201)
 def add_vehicle(
         data: VehicleCreate,
-        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
         ):
     if data.client_id:
         client_id = data.client_id
@@ -41,28 +42,48 @@ def add_vehicle(
     return new_vehicle.id
 
 
-@router.put("detail/{vehicle_id}/edit")
-def edit_vehicle_data(vehicle_id: int,
-               db: Session = Depends(get_db),
-               mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
+@router.put("/vehicles/{vehicle_id}", status_code=200)
+def edit_vehicle_data(
+        vehicle_id: int,
+        data: VehicleEditData,
+        db: Session = Depends(get_db),
+        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
         ):
-    pass
+    updated = change_data_in_vehicle(db, vehicle_id, data)
+    if updated:
+        return {"message": "vehicle updated"}
+
+    raise HTTPException(status_code=400, detail="Not found")
+
+
+@router.get("/vehicles/recently", response_model=list[VehicleBasicInfo])
+def recently_used(
+        db: Session = Depends(get_db),
+        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
+        ):
+    print("Start")
+    all_vehicles = get_recently_used_vehicles(db)
+    print(all_vehicles)
+    return all_vehicles
 
 
 
-
-@router.get("/detail/{vehicle_id}", response_model=VehicleExtendedInfo)
-def detail(vehicle_id: int,
-               db: Session = Depends(get_db),
-               mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
+@router.get("/vehicles/{vehicle_id}", response_model=VehicleExtendedInfo)
+def detail(
+        vehicle_id: int,
+        db: Session = Depends(get_db),
+        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
         ):
     return get_extended_vehicle_and_client_data(db, vehicle_id)
 
 
-@router.get("/recently_used", response_model=list[VehicleBasicInfo])
-def recently_used(
-        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
-        db: Session = Depends(get_db)
+@router.delete("/vehicles/{vehicle_id}", status_code=202)
+def delete_vehicle(
+        vehicle_id: int,
+        db: Session = Depends(get_db),
+        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
         ):
-    all_vehicles = get_recently_used_vehicles(db)
-    return all_vehicles
+    result: bool = db_delete_vehicle(db, vehicle_id)
+    if result:
+        return {"message": "Vehicle was deleted"}
+    raise HTTPException(status_code=404, detail="Could not find vehicle id")

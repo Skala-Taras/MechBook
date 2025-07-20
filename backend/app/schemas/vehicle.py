@@ -30,3 +30,10 @@ class VehicleExtendedInfo(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class VehicleEditData(BaseModel):
+    model: Optional[str] = None
+    mark: Optional[str] = None
+    vin: Optional[constr(max_length=17, min_length=17)] = None
+    client_id: Optional[int] = None

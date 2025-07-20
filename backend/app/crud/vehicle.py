@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from fastapi.params import Depends
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select, desc
 
@@ -6,7 +8,7 @@ from fastapi import HTTPException
 
 from app.models import Clients
 from app.models.vehicles import Vehicles
-from app.schemas.vehicle import VehicleCreate
+from app.schemas.vehicle import VehicleCreate, VehicleEditData
 
 
 def create_vehicle(db: Session, vehicle_data: dict):
@@ -26,14 +28,16 @@ def create_vehicle(db: Session, vehicle_data: dict):
 
     return new_vehicle
 
-def get_extended_vehicle_and_client_data(db: Session, vehicle_id: int) -> Vehicles:
+def get_extended_vehicle_and_client_data(db: Session, vehicle_id: int):
     """
-
+    Get joined tables Vehicles and Clients
     :param db:
     :param vehicle_id:
-    :return: Vehicles
+    :return: Joined Vehicles with CLients
     """
-    return db.query(Vehicles).options(joinedload(Vehicles.client)).filter(Vehicles.id == vehicle_id).first()
+    result = db.query(Vehicles).options(joinedload(Vehicles.client)).filter(Vehicles.id == vehicle_id).first()
+    if result: return result
+    raise HTTPException(status_code=404, detail="Could not find vehicle id")
 
 
 def get_recently_used_vehicles(db: Session) -> list[Vehicles]:
@@ -45,3 +49,21 @@ def get_recently_used_vehicles(db: Session) -> list[Vehicles]:
     :return: list of Vehicles
     """
     return db.query(Vehicles).order_by(desc(Vehicles.last_view_data)).limit(5).all()
+
+
+def change_data_in_vehicle(db: Session, vehicle_id: int, data: VehicleEditData) -> bool:
+    vehicle = db.query(Vehicles).filter_by(id=vehicle_id).first()
+    if not vehicle: return False
+
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(vehicle, key, value)
+    db.commit()
+
+    return True
+
+
+def db_delete_vehicle(db: Session, vehicle_id) -> bool:
+    vehicle = db.query(Vehicles).filter(Vehicles.id == vehicle_id).delete(synchronize_session=False)
+    db.commit()
+    if vehicle: return True
+    return False
