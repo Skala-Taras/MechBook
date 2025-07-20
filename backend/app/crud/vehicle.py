@@ -36,7 +36,11 @@ def get_extended_vehicle_and_client_data(db: Session, vehicle_id: int):
     :return: Joined Vehicles with CLients
     """
     result = db.query(Vehicles).options(joinedload(Vehicles.client)).filter(Vehicles.id == vehicle_id).first()
-    if result: return result
+    if result:
+        # Update_last_view_data in a vehicle and commit
+        result.last_view_data = datetime.utcnow()
+        db.commit()
+        return result
     raise HTTPException(status_code=404, detail="Could not find vehicle id")
 
 
@@ -52,11 +56,13 @@ def get_recently_used_vehicles(db: Session) -> list[Vehicles]:
 
 
 def change_data_in_vehicle(db: Session, vehicle_id: int, data: VehicleEditData) -> bool:
-    vehicle = db.query(Vehicles).filter_by(id=vehicle_id).first()
+    vehicle = db.query(Vehicles).filter(Vehicles.id == vehicle_id).first()
     if not vehicle: return False
 
     for key, value in data.dict(exclude_unset=True).items():
         setattr(vehicle, key, value)
+    # Update_last_view_data in a vehicle and commit
+    vehicle.last_view_data = datetime.utcnow()
     db.commit()
 
     return True
