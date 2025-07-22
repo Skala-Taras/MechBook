@@ -24,7 +24,6 @@ def create_vehicle(db: Session, vehicle_data: dict):
     new_vehicle = Vehicles(**vehicle_data)
     db.add(new_vehicle)
     db.commit()
-    db.refresh(new_vehicle)
 
     return new_vehicle
 
@@ -64,6 +63,7 @@ def change_data_in_vehicle(db: Session, vehicle_id: int, data: VehicleEditData) 
     # Update_last_view_data in a vehicle and commit
     vehicle.last_view_data = datetime.utcnow()
     db.commit()
+    db.refresh(vehicle)
 
     return True
 
