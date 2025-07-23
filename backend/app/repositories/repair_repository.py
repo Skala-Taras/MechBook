@@ -9,7 +9,7 @@ from ..models import Vehicles, Repairs
 from ..schemas.repair import RepairEditData, RepairBasicInfo, RepairExtendedInfo
 
 
-class RepairsRepository(IRepairRepository):
+class RepairRepository(IRepairRepository):
     """
     DAO - data access object
     """
@@ -27,27 +27,28 @@ class RepairsRepository(IRepairRepository):
     def add(self, data: dict) -> int:
         repair = Repairs(**data)
         self.db.add(repair)
-        self.db.commit()
+        self.__update_last_view_time(repair)
         self.db.refresh(repair)
         return repair.id
 
-    def edit(self, repair_id: int, data: RepairEditData) -> bool:
+    def edit(self, data: dict) -> bool:
+        repair_id = data.get("repair_id")
         repair = self.__get_repair_object(repair_id)
         if not repair:
             return False
-        for key, value in data.dict(exclude_unset=True).items():
+        for key, value in data.items():
             setattr(repair, key, value)
         self.__update_last_view_time(repair)
         self.db.refresh(repair)
         return True
 
-    def get_data_by_id(self, repair_id: int) -> RepairExtendedInfo | bool:
+    def get_data_by_id(self, repair_id: int):
         repair = self.__get_repair_object(repair_id)
-        if not repair: return False
+        if not repair: return None
         result = self.db.query(Repairs).options(joinedload(Repairs.vehicle)).filter(Repairs.id == repair_id).first()
         self.__update_last_view_time(repair)
         self.db.refresh(repair)
-        return RepairExtendedInfo.model_validate(result)
+        return result
 
     def recently(self) -> list[RepairBasicInfo]:
         return self.db.query(Repairs).order_by(desc(Repairs.last_seen)).limit(5).all()

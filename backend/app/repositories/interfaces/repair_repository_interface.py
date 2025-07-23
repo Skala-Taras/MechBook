@@ -8,7 +8,7 @@ class IRepairRepository(ABC):
         pass
 
     @abstractmethod
-    def edit(self, repair_id: int, data: dict):
+    def edit(self, data: dict):
         pass
 
     @abstractmethod

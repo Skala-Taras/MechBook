@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -6,26 +7,32 @@ from app.schemas.vehicle import VehicleBasicInfo
 
 
 class RepairCreate(BaseModel):
-    repair_description: str
-    notes: Optional[str] = None
+    name: str
+    repair_description: Optional[str] = None
+    price: Optional[float] = None
+    repair_date: datetime
     vehicle_id: int
 
 class RepairEditData(BaseModel):
+    name: Optional[str] = None
     repair_description: Optional[str] = None
-    notes: Optional[str] = None
+    price: Optional[float] = None
+    repair_data: Optional[datetime] = None
     vehicle_id: Optional[int] = None
 
 class RepairBasicInfo(BaseModel):
-    repair_date: str#data
-    repair_description: str
+    name: str
+    price: float
+    repair_date: datetime
 
     class Config:
         from_attributes = True
 
 class RepairExtendedInfo(BaseModel):
-    repair_date: str  # data
+    name: str
     repair_description: str
-    notes: str
+    price: float
+    repair_date: datetime
     vehicle : VehicleBasicInfo
 
     class Config:
