@@ -1,46 +1,60 @@
-from app.repositories.interfaces.repair_repository_interface import IRepairRepository
-from app.schemas.repair import RepairCreate, RepairEditData, RepairExtendedInfo
+from datetime import datetime, date
+from typing import List
+from fastapi import Depends
+from sqlalchemy.orm import Session
 
+from app.interfaces.repair_repository import IRepairRepository
+from app.interfaces.repair_service import IRepairService
+from app.repositories.repair_repository import RepairRepository
+from app.dependencies.db import get_db
+from app.schemas.repair import RepairCreate, RepairEditData, RepairExtendedInfo, RepairBasicInfo
+from app.models.repairs import Repairs
 
-class RepairService:
-    def __init__(self, user_repo: IRepairRepository):
-        self.user_repo = user_repo
-
+class RepairService(IRepairService):
+    
+    def __init__(self, repair_repo: IRepairRepository = Depends(RepairRepository), db: Session = Depends(get_db)):
+        self.repair_repo = repair_repo
+        self.db = db
+    
     @staticmethod
-    def __validate_if_repair_exist(result: bool) -> None:
-        if not result:
-            raise ValueError("Not Found")
+    def __validate_corect_result(repair: Repairs | bool | None) -> None:
+        # Check if repair_id which was given is valid, if not raise error
+        if not repair:
+            raise ValueError("Repair not found")
 
-    def create(self, repair_data: RepairCreate):
+    def add_repair(self, vehicle_id: int, data: RepairCreate) -> RepairExtendedInfo:
+        repair_data_with_vehicle = data.dict()
+        repair_data_with_vehicle['vehicle_id'] = vehicle_id
+        
+        new_repair = self.repair_repo.create_repair(self.db, RepairCreate(**repair_data_with_vehicle))
+        return RepairExtendedInfo.model_validate(new_repair)
 
-        # data ={
-        #     "repair_description": repair_data.repair_description,
-        #     "notes": repair_data.notes,
-        #     "vehicle_id": repair_data.vehicle_id
-        # }
-        result = self.user_repo.add(repair_data.dict())
-        return result #repair_id
+    def get_repair_details(self, repair_id: int) -> RepairExtendedInfo:
+        repair = self.repair_repo.get_repair_by_id(self.db, repair_id)
+        self.__validate_corect_result(repair)
+        
+        repair.last_seen = datetime.utcnow()
+        self.db.commit()
+        
+        return RepairExtendedInfo.from_orm(repair)
 
-    def get(self, repair_id: int) -> RepairExtendedInfo:
-        repair_object = self.user_repo.get_data_by_id(repair_id)
-        if not repair_object:
-            raise ValueError("Not Found")
-        return repair_object
+    def get_all_repairs_for_vehicle(
+        self,
+        vehicle_id: int,
+        page: int,
+        size: int,        
+    ) -> List[RepairBasicInfo]:
+        repairs = self.repair_repo.get_repair_details(self.db, vehicle_id, page, size)
+        return [RepairBasicInfo.from_orm(r) for r in repairs]
 
-    def recently(self):
-        print("GOOD")
-        return self.user_repo.recently()
+    def edit_repair_data(self, repair_id: int, data: RepairEditData):
+        updated_repair = self.repair_repo.update_repair(self.db, repair_id, data)
+        self.__validate_corect_result(updated_repair)
+        
+        updated_repair.last_seen = datetime.utcnow()
+        self.db.commit()
 
-    def edit_data(self, repair_id: int, repair_data: RepairEditData) -> None:
-        data = repair_data.dict(exclude_unset=True)
-        data.update({"repair_id": repair_id})
-        result = self.user_repo.edit(data)
-        print(result)
-        self.__validate_if_repair_exist(result)
-
-    def delete(self, repair_id: int) -> None:
-        result = self.user_repo.delete(repair_id)
-        print(result)
-        self.__validate_if_repair_exist(result)
-
+    def delete_repair(self, repair_id: int):
+        was_deleted = self.repair_repo.delete_repair(self.db, repair_id)
+        self.__validate_corect_result(was_deleted)
 

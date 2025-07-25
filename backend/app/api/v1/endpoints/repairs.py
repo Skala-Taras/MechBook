@@ -1,59 +1,68 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-
+from datetime import date
+from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies.jwt import get_current_mechanic_id_from_cookie
-from app.dependencies.repair_service import get_repair_service
 from app.schemas.repair import RepairCreate, RepairEditData, RepairExtendedInfo, RepairBasicInfo
+from app.interfaces.repair_service import IRepairService
 from app.services.repair_services import RepairService
 
 router = APIRouter()
 
-
-@router.post("/", status_code=201)
-def create_repair(
+@router.post("/", status_code=201, response_model=RepairExtendedInfo)
+def create_repair_for_vehicle(
+        vehicle_id: int,
         repair_data: RepairCreate,
         mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
-        service: RepairService = Depends(get_repair_service)
-        ):
-    return {"repair_id": service.create(repair_data)}
-
-@router.get("/recently", response_model=list[RepairBasicInfo])
-def get_recent_repairs(
-        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
-        service: RepairService = Depends(get_repair_service)
-        ):
-    return service.recently()
-
-
-@router.put("/{repair_id}", status_code=204)
-def update_repair(
-        repair_id: int,
-        repair_data: RepairEditData,
-        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
-        service: RepairService = Depends(get_repair_service)
+        service: IRepairService = Depends(RepairService)
         ):
     try:
-        service.edit_data(repair_id, repair_data)
+        return service.add_repair(vehicle_id, repair_data)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Repair not found")
+
+@router.get("/", response_model=list[RepairBasicInfo])
+def get_all_repairs_for_vehicle(
+        vehicle_id: int,
+        page: int = 1,
+        size: int = 10,
+        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
+        service: IRepairService = Depends(RepairService)
+        ):
+    return service.get_all_repairs_for_vehicle(
+        vehicle_id=vehicle_id, page=page, size=size
+    )
+
+@router.put("/{repair_id}", status_code=204)
+def update_repair_details(
+        repair_id: int,
+        repair_data: RepairEditData,
+        vehicle_id: int = Depends(lambda: 0), 
+        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
+        service: IRepairService = Depends(RepairService)
+        ):
+    try:
+        service.edit_repair_data(repair_id, repair_data)
     except ValueError:
         raise HTTPException(status_code=404, detail="Repair not found")
 
 @router.get("/{repair_id}", response_model=RepairExtendedInfo)
-def get_repair(
+def get_repair_details(
         repair_id: int,
+        vehicle_id: int = Depends(lambda: 0), # Placeholder
         mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
-        service: RepairService = Depends(get_repair_service)
+        service: IRepairService = Depends(RepairService)
         ):
     try:
-        return service.get(repair_id)
+        return service.get_repair_details(repair_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Repair not found")
 
 @router.delete("/{repair_id}", status_code=204)
-def delete_repair(
+def delete_repair_by_id(
         repair_id: int,
-        service: RepairService = Depends(get_repair_service)
+        vehicle_id: int = Depends(lambda: 0), # Placeholder
+        service: IRepairService = Depends(RepairService)
         ):
     try:
-        service.delete(repair_id)
-        return {"message": "success"}
+        service.delete_repair(repair_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Repair not found")

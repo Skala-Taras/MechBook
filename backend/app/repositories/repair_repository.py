@@ -1,62 +1,51 @@
 from datetime import datetime
-from typing import Any
 
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
+from typing import List, Optional
 
-from .interfaces.repair_repository_interface import IRepairRepository
-from ..models import Vehicles, Repairs
-from ..schemas.repair import RepairEditData, RepairBasicInfo, RepairExtendedInfo
+from app.interfaces.repair_repository import IRepairRepository
+from app.models.repairs import Repairs
+from app.schemas.repair import RepairCreate, RepairEditData
 
 
 class RepairRepository(IRepairRepository):
     """
     DAO - data access object
     """
-    def __init__(self, db_session: Session):
-        self.db = db_session
+    def create_repair(self, db: Session, data: RepairCreate) -> Repairs:
+        repair = Repairs(**data.dict())
+        db.add(repair)
+        db.commit()
+        db.refresh(repair)
+        return repair
 
-    def __update_last_view_time(self, repair_object: Repairs) -> None:
-        repair_object.last_seen = datetime.utcnow()
-        self.db.commit()
+    def get_repair_details(self, db: Session, repair_id: int) -> Optional[Repairs]:
+        return db.query(Repairs).options(joinedload(Repairs.vehicle)).filter(Repairs.id == repair_id).first()
 
-    def __get_repair_object(self, repair_id: int) -> Repairs | None:
-        obj = self.db.query(Repairs).filter(Repairs.id == repair_id).first()
-        return obj
+    def get_repair_details(self, db: Session, vehicle_id: int, page: int, size: int) -> List[Repairs]:
+        offset = (page - 1) * size
+        return db.query(Repairs)\
+            .filter(Repairs.vehicle_id == vehicle_id)\
+            .order_by(desc(Repairs.repair_date))\
+            .offset(offset)\
+            .limit(size)\
+            .all()
 
-    def add(self, data: dict) -> int:
-        repair = Repairs(**data)
-        self.db.add(repair)
-        self.__update_last_view_time(repair)
-        self.db.refresh(repair)
-        return repair.id
-
-    def edit(self, data: dict) -> bool:
-        repair_id = data.get("repair_id")
-        repair = self.__get_repair_object(repair_id)
+    def update_repair(self, db: Session, repair_id: int, data: RepairEditData) -> Optional[Repairs]:
+        repair = db.query(Repairs).filter(Repairs.id == repair_id).first()
         if not repair:
-            return False
-        for key, value in data.items():
+            return None
+        
+        for key, value in data.dict(exclude_unset=True).items():
             setattr(repair, key, value)
-        self.__update_last_view_time(repair)
-        self.db.refresh(repair)
-        return True
+        
+        db.commit()
+        db.refresh(repair)
+        return repair
 
-    def get_data_by_id(self, repair_id: int):
-        repair = self.__get_repair_object(repair_id)
-        if not repair: return None
-        result = self.db.query(Repairs).options(joinedload(Repairs.vehicle)).filter(Repairs.id == repair_id).first()
-        self.__update_last_view_time(repair)
-        self.db.refresh(repair)
-        return result
-
-    def recently(self) -> list[RepairBasicInfo]:
-        return self.db.query(Repairs).order_by(desc(Repairs.last_seen)).limit(5).all()
-
-    def delete(self, repair_id: int) -> bool:
-        repair = self.__get_repair_object(repair_id)
-        if not repair: return False
-        self.db.delete(repair)
-        self.db.commit()
-        return True
+    def delete_repair(self, db: Session, repair_id: int) -> bool:
+        deleted_count = db.query(Repairs).filter(Repairs.id == repair_id).delete(synchronize_session=False)
+        db.commit()
+        return deleted_count > 0
 

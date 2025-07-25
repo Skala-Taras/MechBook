@@ -21,6 +21,7 @@ class RepairEditData(BaseModel):
     vehicle_id: Optional[int] = None
 
 class RepairBasicInfo(BaseModel):
+    id: int
     name: str
     price: float
     repair_date: datetime
@@ -29,6 +30,7 @@ class RepairBasicInfo(BaseModel):
         from_attributes = True
 
 class RepairExtendedInfo(BaseModel):
+    id: int
     name: str
     repair_description: str
     price: float
