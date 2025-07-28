@@ -1,0 +1,56 @@
+from datetime import datetime
+from typing import List, Optional
+
+from fastapi.params import Depends
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import desc
+from fastapi import HTTPException
+
+from app.dependencies.db import get_db
+from app.interfaces.vehicle_repository import IVehicleRepository
+from app.models.vehicles import Vehicles
+from app.schemas.vehicle import VehicleEditData
+
+class VehicleRepository(IVehicleRepository):
+    def __init__(self, db: Session = Depends(get_db)):
+        self.db = db
+
+    def update_last_view_column_in_vehicles(self, vehicle: Vehicles) -> None:
+        vehicle.last_view_data = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(vehicle)
+
+    def create_vehicle(self, vehicle_data: dict) -> Vehicles:
+        vin = vehicle_data.get("vin")
+        if vin:
+            if self.db.query(Vehicles).filter(Vehicles.vin == vin).first():
+                raise HTTPException(status_code=409, detail="Vehicle with this VIN already exists.")
+        
+        new_vehicle = Vehicles(**vehicle_data)
+        self.db.add(new_vehicle)
+        self.db.commit()
+        self.db.refresh(new_vehicle)
+        return new_vehicle
+
+    def get_vehicle_by_id(self, vehicle_id: int) -> Optional[Vehicles]:
+        vehicle = self.db.query(Vehicles).options(joinedload(Vehicles.client)).filter(Vehicles.id == vehicle_id).first()
+        return vehicle
+
+    def get_recently_viewed_vehicles(self, limit: int = 5) -> List[Vehicles]:
+        return self.db.query(Vehicles).order_by(desc(Vehicles.last_view_data)).limit(limit).all()
+
+    def update_vehicle(self, vehicle_id: int, data: dict) -> Optional[Vehicles]:
+        vehicle = self.db.query(Vehicles).filter(Vehicles.id == vehicle_id).first()
+        if not vehicle:
+            return None
+        
+        for key, value in data.items():
+            setattr(vehicle, key, value)
+        
+        # self.__update_last_view_data_in_vehicle(self.db, vehicle)
+        return vehicle
+
+    def delete_vehicle(self, vehicle_id: int) -> bool:
+        deleted_count = self.db.query(Vehicles).filter(Vehicles.id == vehicle_id).delete(synchronize_session=False)
+        self.db.commit()
+        return deleted_count > 0 
