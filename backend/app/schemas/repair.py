@@ -11,7 +11,6 @@ class RepairCreate(BaseModel):
     repair_description: Optional[str] = None
     price: Optional[float] = None
     repair_date: datetime
-    vehicle_id: int
 
 class RepairEditData(BaseModel):
     name: Optional[str] = None

@@ -15,7 +15,7 @@ def create_repair_for_vehicle(
         service: IRepairService = Depends(RepairService)
         ):
     try:
-        return service.add_repair(vehicle_id, repair_data)
+        return service.log_new_repair_for_vehicle(vehicle_id, repair_data)
     except ValueError:
         raise HTTPException(status_code=404, detail="Repair not found")
 
@@ -27,11 +27,11 @@ def get_all_repairs_for_vehicle(
         mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
         service: IRepairService = Depends(RepairService)
         ):
-    return service.get_all_repairs_for_vehicle(
+    return service.list_repairs_for_vehicle(
         vehicle_id=vehicle_id, page=page, size=size
     )
 
-@router.put("/{repair_id}", status_code=204)
+@router.patch("/{repair_id}", status_code=204)
 def update_repair_details(
         repair_id: int,
         repair_data: RepairEditData,
@@ -40,7 +40,7 @@ def update_repair_details(
         service: IRepairService = Depends(RepairService)
         ):
     try:
-        service.edit_repair_data(repair_id, repair_data)
+        service.update_repair_information(repair_id, repair_data)
     except ValueError:
         raise HTTPException(status_code=404, detail="Repair not found")
 

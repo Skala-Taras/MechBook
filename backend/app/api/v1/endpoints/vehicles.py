@@ -15,12 +15,12 @@ def add_vehicle(
         service: IVehicleService = Depends(VehicleService)
         ):
     try:
-        vehicle_id = service.add_vehicle(data, mechanic_id)
+        vehicle_id = service.register_new_vehicle(data, mechanic_id)
         return {"vehicle_id": vehicle_id}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.put("/{vehicle_id}", response_model=VehicleExtendedInfo, status_code=200)
+@router.patch("/{vehicle_id}", response_model=VehicleExtendedInfo, status_code=200)
 def edit_vehicle_data(
         vehicle_id: int,
         data: VehicleEditData,
@@ -28,7 +28,7 @@ def edit_vehicle_data(
         service: IVehicleService = Depends(VehicleService)
         ):
     try:
-        return service.edit_vehicle(vehicle_id, data)
+        return service.update_vehicle_information(vehicle_id, data)
     except ValueError:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
@@ -37,7 +37,7 @@ def recently_used(
         mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
         service: IVehicleService = Depends(VehicleService)
         ):
-    return service.get_recent_vehicles()
+    return service.list_recently_viewed_vehicles()
 
 @router.get("/{vehicle_id}", response_model=VehicleExtendedInfo)
 def detail(

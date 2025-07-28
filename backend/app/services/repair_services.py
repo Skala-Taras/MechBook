@@ -12,49 +12,44 @@ from app.models.repairs import Repairs
 
 class RepairService(IRepairService):
     
-    def __init__(self, repair_repo: IRepairRepository = Depends(RepairRepository), db: Session = Depends(get_db)):
+    def __init__(self, repair_repo: IRepairRepository = Depends(RepairRepository)):
         self.repair_repo = repair_repo
-        self.db = db
     
     @staticmethod
-    def __validate_corect_result(repair: Repairs | bool | None) -> None:
-        # Check if repair_id which was given is valid, if not raise error
+    def __validate_correct_result(repair: Repairs | bool | None) -> None:
+        # Check if repair_id which was given is valid, if not raise ValueError
         if not repair:
             raise ValueError("Repair not found")
 
-    def add_repair(self, vehicle_id: int, data: RepairCreate) -> RepairExtendedInfo:
+    def log_new_repair_for_vehicle(self, vehicle_id: int, data: RepairCreate) -> RepairExtendedInfo:
         repair_data_with_vehicle = data.dict()
         repair_data_with_vehicle['vehicle_id'] = vehicle_id
         
-        new_repair = self.repair_repo.create_repair(self.db, RepairCreate(**repair_data_with_vehicle))
+        new_repair = self.repair_repo.create_repair(repair_data_with_vehicle)
         return RepairExtendedInfo.model_validate(new_repair)
 
     def get_repair_details(self, repair_id: int) -> RepairExtendedInfo:
-        repair = self.repair_repo.get_repair_by_id(self.db, repair_id)
-        self.__validate_corect_result(repair)
-        
-        repair.last_seen = datetime.utcnow()
-        self.db.commit()
-        
-        return RepairExtendedInfo.from_orm(repair)
+        repair = self.repair_repo.get_repair_by_id(repair_id)
+        self.__validate_correct_result(repair)
+        self.repair_repo.update_last_seen_column_in_repair(repair)
+        return RepairExtendedInfo.model_validate(repair)
 
-    def get_all_repairs_for_vehicle(
+    def list_repairs_for_vehicle(
         self,
         vehicle_id: int,
         page: int,
         size: int,        
     ) -> List[RepairBasicInfo]:
-        repairs = self.repair_repo.get_repair_details(self.db, vehicle_id, page, size)
-        return [RepairBasicInfo.from_orm(r) for r in repairs]
+        repairs = self.repair_repo.find_repairs_for_vehicle(vehicle_id, page, size)
+        return [RepairBasicInfo.model_validate(r) for r in repairs]
 
-    def edit_repair_data(self, repair_id: int, data: RepairEditData):
-        updated_repair = self.repair_repo.update_repair(self.db, repair_id, data)
-        self.__validate_corect_result(updated_repair)
-        
-        updated_repair.last_seen = datetime.utcnow()
-        self.db.commit()
+    def update_repair_information(self, repair_id: int, data: RepairEditData):
+        updated_repair = self.repair_repo.update_repair(repair_id, data.dict(exclude_unset=True))
+        # Give repository only data that needed fild without None key
+        self.__validate_correct_result(updated_repair)
+        self.repair_repo.update_last_seen_column_in_repair(updated_repair)
 
     def delete_repair(self, repair_id: int):
-        was_deleted = self.repair_repo.delete_repair(self.db, repair_id)
-        self.__validate_corect_result(was_deleted)
+        was_deleted = self.repair_repo.delete_repair(repair_id)
+        self.__validate_correct_result(was_deleted)
 
