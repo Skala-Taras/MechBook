@@ -5,13 +5,10 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
-from websockets.version import commit
-
 from app.dependencies.db import get_db
 from app.interfaces.repair_repository import IRepairRepository
 from app.models.repairs import Repairs
 from app.schemas.repair import RepairCreate, RepairEditData
-
 
 class RepairRepository(IRepairRepository):
     """
