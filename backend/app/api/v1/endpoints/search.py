@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Query
 
-from app.services.search_engine_service import SearchService
+from app.services.search_engine_service import search_service
 from app.schemas.search import SearchResult
 
 router = APIRouter()
@@ -15,5 +15,5 @@ def perform_search(
     - Fuzzy matching is enabled for typo tolerance.
     - Searches across client names, phone numbers, vehicle makes, models, and VINs.
     """
-    results = SearchService.search(q)
+    results = search_service.search(q)
     return results

@@ -47,7 +47,8 @@ class VehicleRepository(IVehicleRepository):
         for key, value in data.items():
             setattr(vehicle, key, value)
         
-        # self.__update_last_view_data_in_vehicle(self.db, vehicle)
+        self.db.commit()
+        self.db.refresh(vehicle)
         return vehicle
 
     def delete_vehicle(self, vehicle_id: int) -> bool:

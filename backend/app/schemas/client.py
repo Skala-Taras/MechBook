@@ -27,3 +27,9 @@ class ClientExtendedInfo(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ClientUpdate(BaseModel):
+    name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    pesel: Optional[constr(max_length=11, min_length=11)] = None

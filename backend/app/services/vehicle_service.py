@@ -7,14 +7,21 @@ from app.interfaces.vehicle_repository import IVehicleRepository
 from app.repositories.vehicle_repository import VehicleRepository
 from app.dependencies.db import get_db
 from app.models.vehicles import Vehicles
-from app.crud.client import create_client
 from app.schemas.vehicle import VehicleCreate, VehicleEditData, VehicleExtendedInfo, VehicleBasicInfo
 from datetime import datetime
 
+from app.services.client_service import ClientService
+from app.services.search_engine_service import search_service
+
+
 class VehicleService(IVehicleService):
     
-    def __init__(self, vehicle_repo: IVehicleRepository = Depends(VehicleRepository), db: Session = Depends(get_db)):
+    def __init__(self, 
+                 vehicle_repo: IVehicleRepository = Depends(VehicleRepository),
+                 client_service: ClientService = Depends(ClientService),
+                 db: Session = Depends(get_db)):
         self.vehicle_repo = vehicle_repo
+        self.client_service = client_service
         self.db = db
 
     @staticmethod
@@ -27,7 +34,8 @@ class VehicleService(IVehicleService):
         if data.client_id:
             client_id = data.client_id
         elif data.client:
-            client_id = create_client(self.db, data.client, mechanic_id)
+            new_client = self.client_service.create_new_client(data.client, mechanic_id)
+            client_id = new_client.id
         else:
             raise ValueError("Client data or client_id must be provided.")
 
@@ -40,6 +48,7 @@ class VehicleService(IVehicleService):
         }
         
         new_vehicle = self.vehicle_repo.create_vehicle(new_vehicle_data)
+        search_service.index_vehicle(new_vehicle)
         return new_vehicle.id
 
     def get_vehicle_details(self, vehicle_id: int) -> VehicleExtendedInfo:
@@ -55,9 +64,12 @@ class VehicleService(IVehicleService):
     def update_vehicle_information(self, vehicle_id: int, data: VehicleEditData) -> VehicleExtendedInfo:
         updated_vehicle = self.vehicle_repo.update_vehicle(vehicle_id, data.dict(exclude_unset=True))
         self.__validate_correct_result(updated_vehicle)
+        
+        search_service.index_vehicle(updated_vehicle)
         self.vehicle_repo.update_last_view_column_in_vehicles(updated_vehicle)
         return VehicleExtendedInfo.model_validate(updated_vehicle)
 
     def delete_vehicle(self, vehicle_id: int) -> None:
         was_deleted = self.vehicle_repo.delete_vehicle(vehicle_id)
         self.__validate_correct_result(was_deleted)
+        search_service.delete_document(f"vehicle-{vehicle_id}")
