@@ -7,9 +7,15 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/backend_app
+    env_file: 
+      - ./backend/.env
     depends_on:
-      - db
-      - es
+      db:
+        condition: service_healthy
+        restart: true
+      es:
+        condition: service_healthy
+        restart: true
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   db:
@@ -20,6 +26,12 @@ services:
       - "5433:5432"
     env_file:
       - ./.env.db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
   es:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
     volumes:
@@ -28,7 +40,16 @@ services:
       - "9200:9200"
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    healthcheck:
+      # This command is more robust. It uses curl's retry flags to patiently wait
+      # for Elasticsearch to become available, gracefully handling 'Connection Refused'.
+      test: >
+        curl -s -k --retry 5 --retry-delay 5 --retry-connrefused
+        http://es:9200/_cluster/health
+      interval: 15s
+      timeout: 10s
+      retries: 10
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.3
@@ -36,8 +57,10 @@ services:
       - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://es:9200
+      - ELASTICSEARCH_SSL_VERIFICATIONMODE=none
     depends_on:
-      - es
+      es:
+        condition: service_healthy
 
 volumes:
   postgres_data:
