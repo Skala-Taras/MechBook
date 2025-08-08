@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     ELASTIC_HOST: str
     jwt_secret_key: str
     algorithm: str
+    ENCRYPTION_KEY: str
 
     class Config:
         env_file = ".env"

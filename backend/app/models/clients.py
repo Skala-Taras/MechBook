@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
+from app.core.security import EncryptedType
 
 class Clients(Base):
     __tablename__="clients"
@@ -9,7 +10,7 @@ class Clients(Base):
     name: str = Column(String, nullable=False, index=True)
     last_name: str = Column(String, nullable=False, index=True)
     phone: str = Column(String, index=True, nullable=True, unique=True)
-    pesel: str = Column(String(length=11), index=True, nullable=True, unique=True)
+    pesel: str = Column(EncryptedType, nullable=True, unique=True)
     mechanic_id = Column(Integer, ForeignKey("mechanics.id"), nullable=False)
 
     #Reletionship

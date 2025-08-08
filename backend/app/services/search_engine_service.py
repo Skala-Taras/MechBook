@@ -59,7 +59,9 @@ class SearchService:
                         }
                     },
                     "phone": {"type": "keyword"},
-                    "vin": {"type": "keyword"}
+                    "vin": {"type": "keyword"},
+                    "client_id": {"type": "integer"},
+                    "client_name": {"type": "text"} 
                 }
             }
             es_client.indices.create(
@@ -73,27 +75,30 @@ class SearchService:
             type="client",
             name=f"{client.name} {client.last_name}",
             phone=client.phone,
-            vin=None
         )
         es_client.index(
             index=self.INDEX_NAME,
             id=f"client-{client.id}",
-            document=doc.dict()
+            document=doc.dict(exclude_none=True)
         )
 
 
     def index_vehicle(self, vehicle: Vehicles):
+        if not vehicle.client:
+            raise ValueError("Vehicle must have a client to be indexed.")
+            
         doc = ElasticSearchEntry(
             id=vehicle.id,
             type="vehicle",
             name=f"{vehicle.mark} {vehicle.model}",
-            phone=None,
-            vin=vehicle.vin
+            vin=vehicle.vin,
+            client_id=vehicle.client_id,
+            client_name=f"{vehicle.client.name} {vehicle.client.last_name}"
         )
         es_client.index(
             index=self.INDEX_NAME,
             id=f"vehicle-{vehicle.id}",
-            document=doc.dict()
+            document=doc.dict(exclude_none=True)
         )
 
     def delete_document(self, doc_id: str):
@@ -105,16 +110,30 @@ class SearchService:
 
         search_body = {
             "query": {
-                "multi_match": {
-                    "query": query,
-                    "fields": [
-                        "name.autocomplete",
-                        "name.no_whitespace",
-                        "phone",
-                        "vin"
+                "function_score": {
+                    "query": {
+                        "multi_match": {
+                            "query": query,
+                            "fields": [
+                                "name",
+                                "name.autocomplete",
+                                "name.no_whitespace",
+                                "phone",
+                                "vin",
+                                "client_name"
+                            ],
+                            "fuzziness": "AUTO",
+                            "type": "best_fields",
+                            "operator": "and"
+                        }
+                    },
+                    "functions": [
+                        {
+                            "filter": { "term": { "type": "client" } },
+                            "weight": 2
+                        }
                     ],
-                    "fuzziness": "AUTO",
-                    "type": "best_fields"
+                    "boost_mode": "multiply"
                 }
             }
         }

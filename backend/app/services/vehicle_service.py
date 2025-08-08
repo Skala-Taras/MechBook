@@ -54,6 +54,9 @@ class VehicleService(IVehicleService):
     def get_vehicle_details(self, vehicle_id: int) -> VehicleExtendedInfo:
         vehicle = self.vehicle_repo.get_vehicle_by_id(vehicle_id)
         self.__validate_correct_result(vehicle)
+        
+        print(f"SERVICE LAYER: Fetched vehicle {vehicle.id}. VIN is '{vehicle.vin}' (decrypted).")
+
         self.vehicle_repo.update_last_view_column_in_vehicles(vehicle)
         return VehicleExtendedInfo.model_validate(vehicle)
 

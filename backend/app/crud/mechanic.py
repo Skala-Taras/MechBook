@@ -19,5 +19,10 @@ def create_mechanic(db: Session, mechanic: MechanicCreate):
 def get_mechanic_by_email(db: Session, email: str):
     return db.query(Mechanics).filter(Mechanics.email == email).first()
 
-def get_mechanic_by_id(db: Session, id_mechanic: int):
-    return db.query(Mechanics).filter(Mechanics.id == id_mechanic).first()
+def get_mechanic_by_id(db: Session, mechanic_id: int):
+    return db.query(Mechanics).filter(Mechanics.id == mechanic_id).first()
+
+def update_mechanic_password(db: Session, mechanic: Mechanics, new_password_hash: str):
+    mechanic.hashed_password = new_password_hash
+    db.commit()
+    db.refresh(mechanic)

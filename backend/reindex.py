@@ -1,8 +1,8 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.db.session import SessionLocal
 from app.models.clients import Clients
 from app.models.vehicles import Vehicles
-from app.services.search_engine_service import SearchService
+from app.services.search_engine_service import search_service
 from app.search.client import es_client
 
 def reindex_all_data():
@@ -12,25 +12,25 @@ def reindex_all_data():
     db: Session = SessionLocal()
     
     print("Clearing existing search index...")
-    if es_client.indices.exists(index=SearchService.INDEX_NAME):
-        es_client.indices.delete(index=SearchService.INDEX_NAME)
+    if es_client.indices.exists(index=search_service.INDEX_NAME):
+        es_client.indices.delete(index=search_service.INDEX_NAME)
     
     print("Creating new search index with mappings...")
-    SearchService.create_index_if_not_exists()
+    search_service.create_index_if_not_exists()
 
     try:
         # Index all clients
         clients = db.query(Clients).all()
         print(f"Found {len(clients)} clients to index...")
         for client in clients:
-            SearchService.index_client(client)
+            search_service.index_client(client)
         print("Clients indexed successfully.")
 
         # Index all vehicles
-        vehicles = db.query(Vehicles).all()
+        vehicles = db.query(Vehicles).options(joinedload(Vehicles.client)).all()
         print(f"Found {len(vehicles)} vehicles to index...")
         for vehicle in vehicles:
-            SearchService.index_vehicle(vehicle)
+            search_service.index_vehicle(vehicle)
         print("Vehicles indexed successfully.")
 
     finally:

@@ -28,6 +28,9 @@ class ClientService(IClientService):
     def get_client_details(self, client_id: int) -> Optional[ClientExtendedInfo]:
         client = self.client_repo.get_client_by_id(client_id)
         self.__validate_result(client)
+        
+        print(f"SERVICE LAYER: Fetched client {client.id}. PESEL is '{client.pesel}' (decrypted).")
+        
         return ClientExtendedInfo.model_validate(client)
 
     def update_client_details(self, client_id: int, client_data: ClientUpdate) -> Optional[ClientExtendedInfo]:
