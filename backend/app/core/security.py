@@ -6,6 +6,7 @@ from cryptography.fernet import Fernet
 from sqlalchemy.types import TypeDecorator, LargeBinary
 import hmac
 import hashlib
+import uuid
 
 # Initialize Fernet with the encryption key from your .env file
 # This key is used for both encrypting and decrypting.
@@ -75,17 +76,22 @@ def create_access_jwt_token(data: dict, expires_delta: timedelta=timedelta(hours
     return jwt.encode(to_code, settings.jwt_secret_key, algorithm=settings.algorithm)
 
 def create_password_reset_token(email: str) -> str:
-    """Creates a short-lived JWT token for password reset."""
+    """Creates a unique token for password reset with one-time use tracking."""
+    # Create unique token ID
+    token_id = str(uuid.uuid4())
     expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode = {"exp": expire, "sub": email, "scope": "password_reset"}
+    to_encode = {"exp": expire, "sub": email, "scope": "password_reset", "jti": token_id}
     return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.algorithm)
 
-def verify_password_reset_token(token: str) -> str | None:
-    """Verifies the password reset token and returns the email."""
+def verify_password_reset_token(token: str) -> dict | None:
+    """Verifies the password reset token and returns email and token ID."""
     try:
         decoded_token = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.algorithm])
         if decoded_token.get("scope") == "password_reset":
-            return decoded_token.get("sub")
+            return {
+                "email": decoded_token.get("sub"),
+                "token_id": decoded_token.get("jti")
+            }
     except jwt.JWTError:
         return None
     return None

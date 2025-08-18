@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     algorithm: str
     ENCRYPTION_KEY: str
 
+    FRONTEND_URL: str = "http://localhost:3000"  
+
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
     MAIL_FROM: str

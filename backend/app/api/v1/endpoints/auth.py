@@ -76,6 +76,8 @@ def reset_password(
     password_service.reset_password(token, new_password)
     return {"message": "Password has been reset successfully."}
 
+
+
 @router.post("/logout")
 def logout():
     """Clear auth cookie and log out."""
