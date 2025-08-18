@@ -15,10 +15,6 @@ class PasswordService:
         Handles the password recovery request.
         Generates a token and sends the recovery email.
         """
-        mechanic = crud_mechanic.get_mechanic_by_email(self.db, email)
-        if not mechanic:
-            # We don't want to reveal if an email exists or not
-            return
 
         token = create_password_reset_token(email=email)
         await send_email_async(

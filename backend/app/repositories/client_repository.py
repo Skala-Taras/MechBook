@@ -15,11 +15,12 @@ class ClientRepository(IClientRepository):
         self.db = db
 
     def create_client(self, client_data: dict) -> Clients:
-        # Check for phone number uniqueness
-        phone = client_data.get("phone")
-        if phone and self.db.query(Clients).filter(Clients.phone == phone).first():
-            raise HTTPException(status_code=409, detail="Client with this phone number already exists.")
-
+        # Format names properly: "taras ska" -> "Taras Ska"
+        if "name" in client_data and client_data["name"]:
+            client_data["name"] = client_data["name"].strip().title()
+        if "last_name" in client_data and client_data["last_name"]:
+            client_data["last_name"] = client_data["last_name"].strip().title()
+            
         new_client = Clients(**client_data)
         self.db.add(new_client)
         self.db.commit()
@@ -35,6 +36,13 @@ class ClientRepository(IClientRepository):
             return None
         
         update_data = client_data.dict(exclude_unset=True)
+        
+        # Format names properly: "taras ska" -> "Taras Ska"
+        if "name" in update_data and update_data["name"]:
+            update_data["name"] = update_data["name"].strip().title()
+        if "last_name" in update_data and update_data["last_name"]:
+            update_data["last_name"] = update_data["last_name"].strip().title()
+        
         for key, value in update_data.items():
             setattr(client, key, value)
             
@@ -46,3 +54,20 @@ class ClientRepository(IClientRepository):
         deleted_count = self.db.query(Clients).filter(Clients.id == client_id).delete(synchronize_session=False)
         self.db.commit()
         return deleted_count > 0
+
+    def get_client_by_name_and_last_name(self, name: str, last_name: str) -> Optional[Clients]:
+        # Case-insensitive search for duplicate checking
+        return self.db.query(Clients).filter(
+            Clients.name.ilike(name.strip()), 
+            Clients.last_name.ilike(last_name.strip())
+        ).first()
+
+    def get_client_by_phone(self, phone: str) -> Optional[Clients]:
+        if not phone:
+            return None
+        return self.db.query(Clients).filter(Clients.phone == phone).first()
+
+    def get_client_by_pesel(self, pesel: str) -> Optional[Clients]:
+        if not pesel:
+            return None
+        return self.db.query(Clients).filter(Clients.pesel == pesel).first()

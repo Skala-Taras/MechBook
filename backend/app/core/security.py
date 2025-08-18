@@ -4,6 +4,8 @@ from jose import jwt
 from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 from sqlalchemy.types import TypeDecorator, LargeBinary
+import hmac
+import hashlib
 
 # Initialize Fernet with the encryption key from your .env file
 # This key is used for both encrypting and decrypting.
@@ -87,4 +89,30 @@ def verify_password_reset_token(token: str) -> str | None:
     except jwt.JWTError:
         return None
     return None
+
+
+def normalize_vin(vin: str) -> str:
+    """Normalize VIN: uppercase, no spaces"""
+    if not vin:
+        return vin
+    return "".join(vin.split()).upper()
+
+
+def normalize_name(name: str) -> str:
+    """Normalize name: lowercase, no extra spaces"""
+    if not name:
+        return name
+    return " ".join(name.strip().split()).lower()
+
+
+def vin_fingerprint(vin: str) -> str:
+    """Create a secure fingerprint of VIN for duplicate detection"""
+    if not vin:
+        return None
+    normalized = normalize_vin(vin)
+    return hmac.new(
+        settings.ENCRYPTION_KEY.encode(),
+        normalized.encode(),
+        hashlib.sha256
+    ).hexdigest()
 

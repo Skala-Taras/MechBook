@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from app.dependencies.db import get_db
 from app.interfaces.vehicle_repository import IVehicleRepository
 from app.models.vehicles import Vehicles
-from app.schemas.vehicle import VehicleEditData
+from app.core.security import vin_fingerprint
 
 class VehicleRepository(IVehicleRepository):
     def __init__(self, db: Session = Depends(get_db)):
@@ -23,8 +23,11 @@ class VehicleRepository(IVehicleRepository):
     def create_vehicle(self, vehicle_data: dict) -> Vehicles:
         vin = vehicle_data.get("vin")
         if vin:
-            if self.db.query(Vehicles).filter(Vehicles.vin == vin).first():
+            # Create fingerprint for duplicate detection
+            fingerprint = vin_fingerprint(vin)
+            if self.db.query(Vehicles).filter(Vehicles.vin_hash == fingerprint).first():
                 raise HTTPException(status_code=409, detail="Vehicle with this VIN already exists.")
+            vehicle_data["vin_hash"] = fingerprint
         
         new_vehicle = Vehicles(**vehicle_data)
         self.db.add(new_vehicle)
@@ -43,6 +46,11 @@ class VehicleRepository(IVehicleRepository):
         vehicle = self.db.query(Vehicles).filter(Vehicles.id == vehicle_id).first()
         if not vehicle:
             return None
+        
+        # If VIN is being updated, create new fingerprint
+        if "vin" in data and data["vin"]:
+            fingerprint = vin_fingerprint(data["vin"])
+            data["vin_hash"] = fingerprint
         
         for key, value in data.items():
             setattr(vehicle, key, value)

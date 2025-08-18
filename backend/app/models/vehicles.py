@@ -9,7 +9,8 @@ class Vehicles(Base):
     id: int = Column(Integer, primary_key=True, index=True)
     mark: str = Column(String, index=True, nullable=False)
     model: str = Column(String, index=True, nullable=False)
-    vin: str = Column(EncryptedType, nullable=True, unique=True)
+    vin: str = Column(EncryptedType, nullable=True)
+    vin_hash: str = Column(String(64), index=True, unique=True, nullable=True)
     last_view_data = Column(DateTime)
     client_id: int = Column(Integer, ForeignKey("clients.id"), nullable=False)
 

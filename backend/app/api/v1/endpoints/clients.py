@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies.jwt import get_current_mechanic_id_from_cookie
-from app.models.mechanics import Mechanics
 from app.schemas.client import ClientCreate, ClientUpdate, ClientExtendedInfo
 from app.services.client_service import ClientService
 
@@ -9,11 +8,11 @@ router = APIRouter()
 @router.post("/", response_model=ClientExtendedInfo, status_code=201)
 def create_client(
     client_data: ClientCreate,
-    current_mechanic: Mechanics = Depends(get_current_mechanic_id_from_cookie),
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
     client_service: ClientService = Depends(ClientService)
 ):
     try:
-        return client_service.create_new_client(client_data, current_mechanic.id)
+        return client_service.create_new_client(client_data, mechanic_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -22,6 +21,7 @@ def create_client(
 @router.get("/{client_id}", response_model=ClientExtendedInfo)
 def get_client(
     client_id: int,
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
     client_service: ClientService = Depends(ClientService)
 ):
     try:
@@ -34,6 +34,7 @@ def get_client(
 def update_client(
     client_id: int,
     client_data: ClientUpdate,
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
     client_service: ClientService = Depends(ClientService)
 ):
     try:
@@ -44,6 +45,7 @@ def update_client(
 @router.delete("/{client_id}", status_code=204)
 def delete_client(
     client_id: int,
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
     client_service: ClientService = Depends(ClientService)
 ):
     try:
