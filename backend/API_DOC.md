@@ -16,7 +16,7 @@ Simple, consistent reference for frontend dev.
   "name": "Ava Williams",
   "password": "Secret123"
 }
-- Response
+- Response (201)
 {
   "id": 1,
   "email": "ava.williams@example.com"
@@ -29,17 +29,24 @@ Simple, consistent reference for frontend dev.
   "email": "ava.williams@example.com",
   "password": "Secret123"
 }
-- Response (and sets `access_token` cookie)
+- Response (200, sets `access_token` cookie)
 {
   "message": "Login successful"
 }
 
 ### Current mechanic
-- GET `/auth/get_mechanics`
-- Response
+- GET `/auth/get_mechanics` (auth required)
+- Response (200)
 {
   "id": 1,
   "email": "ava.williams@example.com"
+}
+
+### Logout
+- POST `/auth/logout` (auth required)
+- Response (200, clears `access_token` cookie)
+{
+  "message": "Logged out"
 }
 
 ### Password recovery
@@ -48,7 +55,7 @@ Simple, consistent reference for frontend dev.
 {
   "email": "ava.williams@example.com"
 }
-- Response
+- Response (200)
 {
   "message": "If an account with that email exists, a password reset email has been sent."
 }
@@ -60,7 +67,7 @@ Simple, consistent reference for frontend dev.
   "token": "<reset-token>",
   "new_password": "NewSecret123"
 }
-- Response
+- Response (200)
 {
   "message": "Password has been reset successfully."
 }
@@ -73,39 +80,42 @@ Simple, consistent reference for frontend dev.
 {
   "name": "Noah",
   "last_name": "Johnson",
-  "phone": "+1-202-555-0101",    OPTIONAL
-  "pesel": "12345678901"         OPTIONAL
+  "phone": "+1-202-555-0101",    // OPTIONAL
+  "pesel": "12345678901"         // OPTIONAL (exactly 11 chars)
 }
-- Response
+- Response (201)
 {
   "id": 10,
   "name": "Noah",
   "last_name": "Johnson",
-  "phone": "+1-202-555-0101" or None,
-  "pesel": "12345678901" or None
+  "phone": "+1-202-555-0101",    // or null
+  "pesel": "12345678901"         // or null
 }
 
 ### Get client
-- GET `/clients/{client_id}`
-- Response
+- GET `/clients/{client_id}` (auth required)
+- Response (200)
 {
   "id": 10,
   "name": "Noah",
   "last_name": "Johnson",
-  "phone": "+1-202-555-0101", None,   
-  "pesel": "12345678901", None
+  "phone": "+1-202-555-0101",    // or null
+  "pesel": "12345678901"         // or null
 }
 
 ### Update client
-- PUT `/clients/{client_id}`
+- PUT `/clients/{client_id}` (auth required)
 - Body (partial allowed)
 {
-  "phone": "+1-202-555-0177"
+  "name": "Noah",                // OPTIONAL
+  "last_name": "Johnson",        // OPTIONAL  
+  "phone": "+1-202-555-0177",    // OPTIONAL
+  "pesel": "12345678902"         // OPTIONAL (exactly 11 chars)
 }
-- Response: same shape as Get client
+- Response (200): same shape as Get client
 
 ### Delete client
-- DELETE `/clients/{client_id}` → 204 No Content
+- DELETE `/clients/{client_id}` (auth required) → 204 No Content
 
 ## Vehicles
 
@@ -116,100 +126,111 @@ Simple, consistent reference for frontend dev.
   {
     "mark": "BMW",
     "model": "X5",
-    "vin": "WAUZZZ8P79A000000",
+    "vin": "WAUZZZ8P79A000000",    // OPTIONAL (exactly 17 chars)
     "client_id": 10
   }
   - With inline new client:
   {
     "mark": "Audi",
     "model": "A4",
-    "vin": "WAUZZZ8K9BA000000",
+    "vin": "WAUZZZ8K9BA000000",    // OPTIONAL (exactly 17 chars)
     "client": {
       "name": "Ava",
       "last_name": "Williams",
-      "phone": "+1-202-555-0123",
-      "pesel": "98765432109"
+      "phone": "+1-202-555-0123",  // OPTIONAL
+      "pesel": "98765432109"       // OPTIONAL (exactly 11 chars)
     }
   }
-- Response
+- Response (201)
 {
   "vehicle_id": 42
 }
 
 ### Update vehicle
-- PATCH `/vehicles/{vehicle_id}`
+- PATCH `/vehicles/{vehicle_id}` (auth required)
 - Body (partial allowed)
 {
-  "mark": "Audi",
-  "model": "A6"
+  "mark": "Audi",                    // OPTIONAL
+  "model": "A6",                     // OPTIONAL
+  "vin": "WAUZZZ8K9BA000001",        // OPTIONAL (exactly 17 chars)
+  "client_id": 11                    // OPTIONAL
 }
-- Response: VehicleExtendedInfo
+- Response (200): VehicleExtendedInfo
 
-### Recently viewed
-- GET `/vehicles/recent`
-- Response: VehicleBasicInfo[]
+### Recently viewed vehicles
+- GET `/vehicles/recent` (auth required)
+- Response (200): VehicleBasicInfo[]
 
 ### Vehicle detail
-- GET `/vehicles/{vehicle_id}`
-- Response
+- GET `/vehicles/{vehicle_id}` (auth required)
+- Response (200)
 {
   "id": 42,
   "model": "A4",
   "mark": "Audi",
-  "vin": "WAUZZZ8K9BA000000",
+  "vin": "WAUZZZ8K9BA000000",        // or null
   "client": {
     "id": 10,
     "name": "Ava",
     "last_name": "Williams",
-    "phone": "+1-202-555-0123",
-    "pesel": "98765432109"
+    "phone": "+1-202-555-0123",      // or null
+    "pesel": "98765432109"           // or null
   }
 }
 
 ### Delete vehicle
-- DELETE `/vehicles/{vehicle_id}` → 204 No Content
+- DELETE `/vehicles/{vehicle_id}` (auth required) → 204 No Content
 
 ## Repairs (per vehicle)
 
 ### Create repair
-- POST `/vehicles/{vehicle_id}/repairs/`
+- POST `/vehicles/{vehicle_id}/repairs/` (auth required)
 - Body
 {
   "name": "Oil change",
-  "repair_description": "OEM filter",
-  "price": 120.0,
+  "repair_description": "OEM filter",   // OPTIONAL
+  "price": 120.0,                       // OPTIONAL
   "repair_date": "2025-08-08T12:00:00Z"
 }
-- Response: RepairExtendedInfo
+- Response (201): RepairExtendedInfo
 
 ### List repairs
-- GET `/vehicles/{vehicle_id}/repairs/?page=1&size=10`
-- Response: RepairBasicInfo[]
+- GET `/vehicles/{vehicle_id}/repairs/?page=1&size=10` (auth required)
+- Response (200): RepairBasicInfo[]
 
 ### Update repair
-- PATCH `/vehicles/{vehicle_id}/repairs/{repair_id}`
+- PATCH `/vehicles/{vehicle_id}/repairs/{repair_id}` (auth required)
 - Body (partial allowed)
 {
-  "price": 140.0
+  "name": "Oil change premium",         // OPTIONAL
+  "repair_description": "Premium OEM", // OPTIONAL
+  "price": 140.0,                      // OPTIONAL
+  "repair_data": "2025-08-09T12:00:00Z" // OPTIONAL (note: typo in schema)
 }
 - Response → 204 No Content
 
 ### Repair detail
-- GET `/vehicles/{vehicle_id}/repairs/{repair_id}`
-- Response: RepairExtendedInfo
+- GET `/vehicles/{vehicle_id}/repairs/{repair_id}` (auth required)
+- Response (200): RepairExtendedInfo
 
 ### Delete repair
-- DELETE `/vehicles/{vehicle_id}/repairs/{repair_id}` → 204 No Content
+- DELETE `/vehicles/{vehicle_id}/repairs/{repair_id}` (auth required) → 204 No Content
 
 ## Search
 
 ### Search all
 - GET `/search/?q=term`
-- Response: SearchResult[]
-- Clients are ranked first; vehicles related to matched clients follow.
-- Order-independent names ("Williams Ava" matches "Ava Williams"). Typo tolerance enabled.
+- Response (200): SearchResult[]
+- Features:
+  - Clients ranked first, then vehicles
+  - Order-independent names ("Williams Ava" matches "Ava Williams")
+  - Searches across client names, phone numbers, vehicle makes, models, VINs
+  - Fuzzy matching enabled for typo tolerance
 
-## Schemas (shapes)
+## Schemas (response shapes)
+
+### ClientExtendedInfo
+{ "id": 10, "name": "Noah", "last_name": "Johnson", "phone": "+1-202-555-0101", "pesel": "12345678901" }
 
 ### VehicleBasicInfo
 { "id": 42, "model": "A4", "mark": "Audi", "client": { "id": 10, "name": "Ava", "last_name": "Williams" } }
@@ -223,27 +244,10 @@ Simple, consistent reference for frontend dev.
 ### RepairExtendedInfo
 { "id": 7, "name": "Oil change", "repair_description": "OEM filter", "price": 120.0, "repair_date": "2025-08-08T12:00:00Z", "vehicle": { "id": 42, "model": "A4", "mark": "Audi", "client": { "id": 10, "name": "Ava", "last_name": "Williams" } } }
 
-### ClientExtendedInfo
-{ "id": 10, "name": "Noah", "last_name": "Johnson", "phone": "+1-202-555-0101", "pesel": "12345678901" }
+### SearchResult
+{ "id": 42, "type": "client", "name": "Ava Williams", "mark": null, "model": null }
 
-## Notes & status codes
-- Most routes require the auth cookie from `/auth/login`.
-- 201 on create, 200 on reads, 204 on updates (repairs) and deletes.
-- 400 for validation/business rule errors (e.g., duplicate VIN/phone), 404 for not found.
-- Sensitive fields `pesel` and `vin` are encrypted at rest in the DB; API returns decrypted values.
-- Search is backed by Elasticsearch and reflects DB changes near‑real‑time.
 
-## Quick curl examples
 
-### Login
-curl -i -X POST http://localhost:8000/api/v1/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"ava.williams@example.com","password":"Secret123"}'
-
-### Create client (send cookie from login response)
-curl -i -X POST http://localhost:8000/api/v1/clients/ \
-  -H 'Content-Type: application/json' \
-  -H 'Cookie: access_token=<paste-cookie>' \
-  -d '{"name":"Noah","last_name":"Johnson","phone":"+1-202-555-0101","pesel":"12345678901"}'
 
 
