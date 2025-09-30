@@ -69,7 +69,7 @@ def verify_password(pw_to_verify:str, hashed_pw: str) -> bool:
     return pwd_context.verify(pw_to_verify, hashed_pw)
 
 
-def create_access_jwt_token(data: dict, expires_delta: timedelta=timedelta(hours=1)):
+def create_access_jwt_token(data: dict, expires_delta: timedelta = timedelta(days=7)):
     to_code = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_code.update({"exp": expire})
