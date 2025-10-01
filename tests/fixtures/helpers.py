@@ -157,3 +157,92 @@ def assert_success_response(response, expected_status: int = 200):
     
     return response.json()
 
+
+class ClientHelper:
+    """Helper do operacji na klientach"""
+    
+    BASE_URL = "/api/v1/clients"
+    
+    @staticmethod
+    def create_client(
+        client: TestClient,
+        name: str = "Jan",
+        last_name: str = "Kowalski",
+        phone: str = None,
+        pesel: str = None
+    ) -> Dict[str, Any]:
+        """
+        Tworzy klienta przez API.
+        
+        Returns:
+            Dict z kluczami: response, status_code, data (jeśli sukces)
+        """
+        payload = {
+            "name": name,
+            "last_name": last_name
+        }
+        if phone:
+            payload["phone"] = phone
+        if pesel:
+            payload["pesel"] = pesel
+        
+        response = client.post(ClientHelper.BASE_URL, json=payload)
+        
+        result = {
+            "response": response,
+            "status_code": response.status_code,
+            "payload": payload
+        }
+        
+        if response.status_code == 201:
+            result["data"] = response.json()
+        
+        return result
+    
+    @staticmethod
+    def get_client(client: TestClient, client_id: int) -> Dict[str, Any]:
+        """Pobiera klienta po ID"""
+        response = client.get(f"{ClientHelper.BASE_URL}/{client_id}")
+        
+        result = {
+            "response": response,
+            "status_code": response.status_code
+        }
+        
+        if response.status_code == 200:
+            result["data"] = response.json()
+        
+        return result
+    
+    @staticmethod
+    def update_client(
+        client: TestClient,
+        client_id: int,
+        **update_fields
+    ) -> Dict[str, Any]:
+        """Aktualizuje klienta"""
+        response = client.put(
+            f"{ClientHelper.BASE_URL}/{client_id}",
+            json=update_fields
+        )
+        
+        result = {
+            "response": response,
+            "status_code": response.status_code
+        }
+        
+        if response.status_code == 200:
+            result["data"] = response.json()
+        
+        return result
+    
+    @staticmethod
+    def delete_client(client: TestClient, client_id: int) -> Dict[str, Any]:
+        """Usuwa klienta"""
+        response = client.delete(f"{ClientHelper.BASE_URL}/{client_id}")
+        
+        return {
+            "response": response,
+            "status_code": response.status_code
+        }
+

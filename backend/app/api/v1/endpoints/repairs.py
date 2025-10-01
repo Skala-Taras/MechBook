@@ -59,7 +59,8 @@ def get_repair_details(
 @router.delete("/{repair_id}", status_code=204)
 def delete_repair_by_id(
         repair_id: int,
-        vehicle_id: int = Depends(lambda: 0), # Placeholder
+        vehicle_id: int = Depends(lambda: 0), 
+        mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
         service: IRepairService = Depends(RepairService)
         ):
     try:

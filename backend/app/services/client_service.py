@@ -24,13 +24,17 @@ class ClientService(IClientService):
 
         # Check for duplicates before creating
         if self.client_repo.get_client_by_name_and_last_name(client_dict['name'], client_dict['last_name']):
-            raise HTTPException(status_code=409, detail="Client with this name and last name already exists.")
+            raise ValueError("Client with this name and last name already exists.")
         
         if client_dict.get('phone') and self.client_repo.get_client_by_phone(client_dict['phone']):
-            raise HTTPException(status_code=409, detail="Client with this phone number already exists.")
+            raise ValueError("Client with this phone number already exists.")
         
-        if client_dict.get('pesel') and self.client_repo.get_client_by_pesel(client_dict['pesel']):
-            raise HTTPException(status_code=409, detail="Client with this pesel already exists.")
+    
+        if client_dict.get('pesel'):
+            all_clients = self.client_repo.get_all_clients()
+            for existing_client in all_clients:
+                if existing_client.pesel and existing_client.pesel == client_dict['pesel']:
+                    raise ValueError("Client with this pesel already exists.")
         
         new_client = self.client_repo.create_client(client_dict)
         try:

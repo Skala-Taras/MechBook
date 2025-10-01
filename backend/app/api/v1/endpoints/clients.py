@@ -14,7 +14,11 @@ def create_client(
     try:
         return client_service.create_new_client(client_data, mechanic_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        error_msg = str(e)
+        # Sprawdź czy to błąd duplikatu (conflict) czy inny błąd walidacji
+        if "already exists" in error_msg:
+            raise HTTPException(status_code=409, detail=error_msg)
+        raise HTTPException(status_code=400, detail=error_msg)
     except Exception as e:
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 

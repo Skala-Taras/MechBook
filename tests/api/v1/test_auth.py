@@ -1,12 +1,6 @@
 """
-Testy dla endpointów autentykacji (/api/v1/auth).
-
-Ten moduł testuje:
-- Rejestrację użytkowników
-- Logowanie i zarządzanie sesją (cookies)
-- Autoryzację (dostęp do chronionych endpointów)
-- Odzyskiwanie i resetowanie hasła
-- Wylogowanie
+Authentication endpoints tests (/api/v1/auth).
+Tests registration, login, authorization, password recovery, and logout.
 """
 import pytest
 from fastapi.testclient import TestClient
@@ -23,14 +17,10 @@ from tests.fixtures.factories import MechanicFactory
 @pytest.mark.auth
 @pytest.mark.integration
 class TestRegister:
-    """Testy endpointu POST /api/v1/auth/register"""
+    """Tests for POST /api/v1/auth/register"""
     
     def test_register_success(self, client: TestClient):
-        """
-        GIVEN: Nowy użytkownik z poprawnymi danymi
-        WHEN: Wywołanie POST /register
-        THEN: Status 200, zwrócony email i ID użytkownika
-        """
+        """Successfully register a new user with valid data"""
         user_data = MechanicFactory.build(email="newuser@example.com", name="New User")
         result = AuthHelper.register_user(client, **user_data)
         
@@ -46,11 +36,7 @@ class TestRegister:
         assert isinstance(data["id"], int)
     
     def test_register_duplicate_email(self, client: TestClient):
-        """
-        GIVEN: Użytkownik już zarejestrowany
-        WHEN: Próba rejestracji z tym samym emailem
-        THEN: Status 400
-        """
+        """Reject registration with already registered email"""
         email = "duplicate@example.com"
         AuthHelper.register_user(client, email=email, name="User One")
         
@@ -62,7 +48,7 @@ class TestRegister:
         assert_error_response(response, 400, "Email already registered")
     
     def test_register_invalid_email(self, client: TestClient):
-        """Test niepoprawnego formatu email"""
+        """Reject registration with invalid email format"""
         response = client.post(
             f"{AuthHelper.BASE_URL}/register",
             json={"email": "not-an-email", "name": "Test", "password": "pass123"}
@@ -70,7 +56,7 @@ class TestRegister:
         assert response.status_code == 422
     
     def test_register_password_too_short(self, client: TestClient):
-        """Test hasła krótszego niż 5 znaków"""
+        """Reject password shorter than 5 characters"""
         response = client.post(
             f"{AuthHelper.BASE_URL}/register",
             json={"email": "test@example.com", "name": "Test", "password": "1234"}
@@ -78,7 +64,7 @@ class TestRegister:
         assert response.status_code == 422
     
     def test_register_password_too_long(self, client: TestClient):
-        """Test hasła dłuższego niż 15 znaków"""
+        """Reject password longer than 15 characters"""
         response = client.post(
             f"{AuthHelper.BASE_URL}/register",
             json={"email": "test@example.com", "name": "Test", "password": "a" * 16}
@@ -94,10 +80,10 @@ class TestRegister:
 @pytest.mark.auth
 @pytest.mark.integration
 class TestLogin:
-    """Testy endpointu POST /api/v1/auth/login"""
+    """Tests for POST /api/v1/auth/login"""
     
     def test_login_success(self, client: TestClient):
-        """Test poprawnego logowania"""
+        """Successfully login with valid credentials"""
         email = "login@example.com"
         password = "password123"
         AuthHelper.register_user(client, email=email, password=password)
@@ -108,7 +94,7 @@ class TestLogin:
         assert result["has_cookie"] is True
     
     def test_login_user_not_found(self, client: TestClient):
-        """Test logowania z nieistniejącym emailem"""
+        """Reject login for non-existent email"""
         response = client.post(
             f"{AuthHelper.BASE_URL}/login",
             json={"email": "nonexistent@example.com", "password": "pass123"}
@@ -116,7 +102,7 @@ class TestLogin:
         assert_error_response(response, 404, "Not found mechanic")
     
     def test_login_wrong_password(self, client: TestClient):
-        """Test logowania z błędnym hasłem"""
+        """Reject login with incorrect password"""
         email = "user@example.com"
         AuthHelper.register_user(client, email=email, password="correct123")
         
@@ -125,6 +111,8 @@ class TestLogin:
             json={"email": email, "password": "wrong_password"}
         )
         assert_error_response(response, 400, "Password is incorrect")
+    
+    
 
 
 # ============================================================================
@@ -135,15 +123,15 @@ class TestLogin:
 @pytest.mark.auth
 @pytest.mark.integration
 class TestAuthorization:
-    """Testy dostępu do chronionych endpointów"""
+    """Tests for authorization and protected endpoints"""
     
     def test_get_mechanics_requires_auth(self, client: TestClient):
-        """Test dostępu bez zalogowania"""
+        """Reject access without authentication"""
         response = client.get(f"{AuthHelper.BASE_URL}/get_mechanics")
         assert_error_response(response, 401, "Token missing")
     
     def test_get_mechanics_success_after_login(self, client: TestClient):
-        """Test dostępu po zalogowaniu"""
+        """Access protected endpoint with valid token"""
         email = "mechanic@example.com"
         result = AuthHelper.register_and_login(client, email=email)
         user_id = result["user_data"]["id"]
@@ -163,10 +151,10 @@ class TestAuthorization:
 @pytest.mark.auth
 @pytest.mark.integration
 class TestLogout:
-    """Testy endpointu POST /api/v1/auth/logout"""
+    """Tests for POST /api/v1/auth/logout"""
     
     def test_logout_clears_cookie(self, client: TestClient):
-        """Test usuwania ciastka przy wylogowaniu"""
+        """Logout clears the access_token cookie"""
         AuthHelper.register_and_login(client, email="logout@example.com")
         assert "access_token" in client.cookies
         
@@ -176,7 +164,7 @@ class TestLogout:
         assert result["cookie_cleared"] is True
     
     def test_after_logout_cannot_access_protected_endpoints(self, client: TestClient):
-        """Test braku dostępu po wylogowaniu"""
+        """Cannot access protected endpoints after logout"""
         AuthHelper.register_and_login(client, email="test@example.com")
         AuthHelper.logout_user(client)
         
@@ -192,10 +180,10 @@ class TestLogout:
 @pytest.mark.auth
 @pytest.mark.integration
 class TestPasswordRecovery:
-    """Testy odzyskiwania i resetowania hasła"""
+    """Tests for password recovery and reset"""
     
     def test_recover_password_returns_generic_message(self, client: TestClient):
-        """Test generycznego komunikatu (zapobieganie user enumeration)"""
+        """Return generic message to prevent user enumeration"""
         response = client.post(
             f"{AuthHelper.BASE_URL}/recover-password",
             json={"email": "any@example.com"}
@@ -205,7 +193,7 @@ class TestPasswordRecovery:
         assert data["message"].startswith("If an account with that email exists")
     
     def test_reset_password_success(self, client: TestClient):
-        """Test resetowania hasła"""
+        """Reset password with valid token"""
         response = client.post(
             f"{AuthHelper.BASE_URL}/reset-password",
             json={"token": "dummy-token", "new_password": "newpass123"}

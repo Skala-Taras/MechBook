@@ -1,253 +1,703 @@
-## MechBook API Doc (v1)
+## MechBook API Documentation (v1)
 
-Simple, consistent reference for frontend dev.
+Simple, consistent reference for frontend development.
 
 ### Base
-- Base URL: `/api/v1`
-- Auth: Cookie-based JWT set by the login endpoint (`access_token`, HttpOnly). Send the cookie on all authenticated requests.
+- **Base URL**: `/api/v1`
+- **Authentication**: Cookie-based JWT (`access_token`, HttpOnly)
+  - Set automatically by the login endpoint
+  - Valid for 1 hour
+  - Send the cookie with all authenticated requests
+- **Content-Type**: `application/json`
+
+---
 
 ## Authentication
 
 ### Register
-- POST `/auth/register`
-- Body
+**Create a new mechanic account**
+- **POST** `/auth/register`
+- **Auth required**: No
+- **Body**:
+```json
 {
   "email": "ava.williams@example.com",
   "name": "Ava Williams",
   "password": "Secret123"
 }
-- Response (201)
+```
+- **Validation**:
+  - `email`: Valid email format
+  - `password`: 5-15 characters
+- **Response** (200):
+```json
 {
   "id": 1,
   "email": "ava.williams@example.com"
 }
+```
+- **Errors**:
+  - `400`: Email already registered
+  - `422`: Validation error (invalid email, password too short/long)
 
-### Login (sets auth cookie)
-- POST `/auth/login`
-- Body
+---
+
+### Login
+**Authenticate and receive auth cookie**
+- **POST** `/auth/login`
+- **Auth required**: No
+- **Body**:
+```json
 {
   "email": "ava.williams@example.com",
   "password": "Secret123"
 }
-- Response (200, sets `access_token` cookie)
+```
+- **Response** (200, sets `access_token` cookie):
+```json
 {
   "message": "Login successful"
 }
+```
+- **Errors**:
+  - `404`: Mechanic not found
+  - `400`: Incorrect password
+  - `422`: Validation error
 
-### Current mechanic
-- GET `/auth/get_mechanics` (auth required)
-- Response (200)
+---
+
+### Get Current Mechanic
+**Get authenticated mechanic details**
+- **GET** `/auth/get_mechanics`
+- **Auth required**: Yes
+- **Response** (200):
+```json
 {
   "id": 1,
   "email": "ava.williams@example.com"
 }
+```
+- **Errors**:
+  - `401`: Not authenticated (missing or invalid token)
+
+---
 
 ### Logout
-- POST `/auth/logout` (auth required)
-- Response (200, clears `access_token` cookie)
+**Clear authentication cookie**
+- **POST** `/auth/logout`
+- **Auth required**: No (works regardless of auth state)
+- **Response** (200, clears `access_token` cookie):
+```json
 {
   "message": "Logged out"
 }
+```
 
-### Password recovery
-- POST `/auth/recover-password`
-- Body
+---
+
+### Password Recovery
+**Request password reset email**
+- **POST** `/auth/recover-password`
+- **Auth required**: No
+- **Body**:
+```json
 {
   "email": "ava.williams@example.com"
 }
-- Response (200)
+```
+- **Response** (200):
+```json
 {
   "message": "If an account with that email exists, a password reset email has been sent."
 }
+```
+- **Note**: Returns same message regardless of email existence (prevents user enumeration)
 
-### Password reset
-- POST `/auth/reset-password`
-- Body
+---
+
+### Password Reset
+**Reset password using token from email**
+- **POST** `/auth/reset-password`
+- **Auth required**: No
+- **Body**:
+```json
 {
-  "token": "<reset-token>",
+  "token": "<reset-token-from-email>",
   "new_password": "NewSecret123"
 }
-- Response (200)
+```
+- **Validation**:
+  - `new_password`: 5-15 characters
+- **Response** (200):
+```json
 {
   "message": "Password has been reset successfully."
 }
+```
+
+---
 
 ## Clients
 
-### Create client
-- POST `/clients/` (auth required)
-- Body
+### Create Client
+**Create a new client**
+- **POST** `/clients/`
+- **Auth required**: Yes
+- **Body**:
+```json
 {
   "name": "Noah",
   "last_name": "Johnson",
-  "phone": "+1-202-555-0101",    // OPTIONAL
-  "pesel": "12345678901"         // OPTIONAL (exactly 11 chars)
+  "phone": "+1-202-555-0101",
+  "pesel": "12345678901"
 }
-- Response (201)
+```
+- **Fields**:
+  - `name`: **Required** (auto-capitalized)
+  - `last_name`: **Required** (auto-capitalized)
+  - `phone`: *Optional* (any format)
+  - `pesel`: *Optional* (must be exactly 11 characters if provided)
+- **Response** (201):
+```json
 {
   "id": 10,
   "name": "Noah",
   "last_name": "Johnson",
-  "phone": "+1-202-555-0101",    // or null
-  "pesel": "12345678901"         // or null
+  "phone": "+1-202-555-0101",
+  "pesel": "12345678901"
 }
+```
+- **Errors**:
+  - `401`: Not authenticated
+  - `409`: Client with this name+last_name, phone, or PESEL already exists
+  - `422`: Validation error (PESEL not 11 characters)
 
-### Get client
-- GET `/clients/{client_id}` (auth required)
-- Response (200)
+---
+
+### Get Client
+**Retrieve client details by ID**
+- **GET** `/clients/{client_id}`
+- **Auth required**: Yes
+- **Response** (200):
+```json
 {
   "id": 10,
   "name": "Noah",
   "last_name": "Johnson",
-  "phone": "+1-202-555-0101",    // or null
-  "pesel": "12345678901"         // or null
+  "phone": "+1-202-555-0101",
+  "pesel": "12345678901"
 }
+```
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Client not found
 
-### Update client
-- PUT `/clients/{client_id}` (auth required)
-- Body (partial allowed)
+---
+
+### Update Client
+**Update client details (partial updates allowed)**
+- **PUT** `/clients/{client_id}`
+- **Auth required**: Yes
+- **Body** (all fields optional):
+```json
 {
-  "name": "Noah",                // OPTIONAL
-  "last_name": "Johnson",        // OPTIONAL  
-  "phone": "+1-202-555-0177",    // OPTIONAL
-  "pesel": "12345678902"         // OPTIONAL (exactly 11 chars)
+  "name": "Noah",
+  "last_name": "Johnson",
+  "phone": "+1-202-555-0177",
+  "pesel": "12345678902"
 }
-- Response (200): same shape as Get client
+```
+- **Validation**:
+  - `pesel`: Must be exactly 11 characters if provided
+- **Response** (200): Same as Get Client
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Client not found
+  - `422`: Validation error
 
-### Delete client
-- DELETE `/clients/{client_id}` (auth required) → 204 No Content
+---
+
+### Delete Client
+**Delete a client**
+- **DELETE** `/clients/{client_id}`
+- **Auth required**: Yes
+- **Response**: `204 No Content`
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Client not found
+
+---
 
 ## Vehicles
 
-### Create vehicle
-- POST `/vehicles/` (auth required)
-- Two options
-  - With existing client:
-  {
-    "mark": "BMW",
-    "model": "X5",
-    "vin": "WAUZZZ8P79A000000",    // OPTIONAL (exactly 17 chars)
-    "client_id": 10
+### Create Vehicle
+**Create a new vehicle with client association**
+- **POST** `/vehicles/`
+- **Auth required**: Yes
+- **Body** (Option 1: Existing client):
+```json
+{
+  "mark": "BMW",
+  "model": "X5",
+  "vin": "WAUZZZ8P79A000000",
+  "client_id": 10
+}
+```
+- **Body** (Option 2: Create new client inline):
+```json
+{
+  "mark": "Audi",
+  "model": "A4",
+  "vin": "WAUZZZ8K9BA000000",
+  "client": {
+    "name": "Ava",
+    "last_name": "Williams",
+    "phone": "+1-202-555-0123",
+    "pesel": "98765432109"
   }
-  - With inline new client:
-  {
-    "mark": "Audi",
-    "model": "A4",
-    "vin": "WAUZZZ8K9BA000000",    // OPTIONAL (exactly 17 chars)
-    "client": {
-      "name": "Ava",
-      "last_name": "Williams",
-      "phone": "+1-202-555-0123",  // OPTIONAL
-      "pesel": "98765432109"       // OPTIONAL (exactly 11 chars)
-    }
-  }
-- Response (201)
+}
+```
+- **Fields**:
+  - `mark`: **Required**
+  - `model`: **Required**
+  - `vin`: *Optional* (must be exactly 17 characters if provided)
+  - `client_id` OR `client`: **One required**
+- **Response** (201):
+```json
 {
   "vehicle_id": 42
 }
+```
+- **Errors**:
+  - `400`: Missing client data (neither client_id nor client provided)
+  - `401`: Not authenticated
+  - `422`: Validation error (VIN not 17 characters)
 
-### Update vehicle
-- PATCH `/vehicles/{vehicle_id}` (auth required)
-- Body (partial allowed)
-{
-  "mark": "Audi",                    // OPTIONAL
-  "model": "A6",                     // OPTIONAL
-  "vin": "WAUZZZ8K9BA000001",        // OPTIONAL (exactly 17 chars)
-  "client_id": 11                    // OPTIONAL
-}
-- Response (200): VehicleExtendedInfo
+---
 
-### Recently viewed vehicles
-- GET `/vehicles/recent` (auth required)
-- Response (200): VehicleBasicInfo[]
-
-### Vehicle detail
-- GET `/vehicles/{vehicle_id}` (auth required)
-- Response (200)
+### Get Vehicle
+**Retrieve vehicle details by ID**
+- **GET** `/vehicles/{vehicle_id}`
+- **Auth required**: Yes
+- **Response** (200):
+```json
 {
   "id": 42,
   "model": "A4",
   "mark": "Audi",
-  "vin": "WAUZZZ8K9BA000000",        // or null
+  "vin": "WAUZZZ8K9BA000000",
   "client": {
     "id": 10,
     "name": "Ava",
     "last_name": "Williams",
-    "phone": "+1-202-555-0123",      // or null
-    "pesel": "98765432109"           // or null
+    "phone": "+1-202-555-0123",
+    "pesel": "98765432109"
   }
 }
+```
+- **Note**: Updates `last_view_data` timestamp when accessed
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Vehicle not found
 
-### Delete vehicle
-- DELETE `/vehicles/{vehicle_id}` (auth required) → 204 No Content
+---
 
-## Repairs (per vehicle)
+### Update Vehicle
+**Update vehicle details (partial updates allowed)**
+- **PATCH** `/vehicles/{vehicle_id}`
+- **Auth required**: Yes
+- **Body** (all fields optional):
+```json
+{
+  "mark": "Audi",
+  "model": "A6",
+  "vin": "WAUZZZ8K9BA000001",
+  "client_id": 11
+}
+```
+- **Validation**:
+  - `vin`: Must be exactly 17 characters if provided
+- **Response** (200): Same as Get Vehicle
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Vehicle not found
+  - `422`: Validation error
 
-### Create repair
-- POST `/vehicles/{vehicle_id}/repairs/` (auth required)
-- Body
+---
+
+### Recently Viewed Vehicles
+**Get list of recently viewed vehicles (max 5)**
+- **GET** `/vehicles/recent`
+- **Auth required**: Yes
+- **Response** (200):
+```json
+[
+  {
+    "id": 42,
+    "model": "A4",
+    "mark": "Audi",
+    "client": {
+      "id": 10,
+      "name": "Ava",
+      "last_name": "Williams"
+    }
+  }
+]
+```
+- **Note**: Returns up to 5 most recently viewed vehicles, ordered by `last_view_data`
+- **Errors**:
+  - `401`: Not authenticated
+
+---
+
+### Delete Vehicle
+**Delete a vehicle**
+- **DELETE** `/vehicles/{vehicle_id}`
+- **Auth required**: Yes
+- **Response**: `204 No Content`
+- **Note**: Also removes vehicle from search index
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Vehicle not found
+
+---
+
+## Repairs
+
+All repair endpoints are nested under vehicles: `/vehicles/{vehicle_id}/repairs/`
+
+### Create Repair
+**Log a new repair for a vehicle**
+- **POST** `/vehicles/{vehicle_id}/repairs/`
+- **Auth required**: Yes
+- **Body**:
+```json
 {
   "name": "Oil change",
-  "repair_description": "OEM filter",   // OPTIONAL
-  "price": 120.0,                       // OPTIONAL
-  "repair_date": "2025-08-08T12:00:00Z"
+  "repair_description": "Used OEM filter and 5W-30 synthetic oil",
+  "price": 120.0,
+  "repair_date": "2025-10-08T14:30:00Z"
 }
-- Response (201): RepairExtendedInfo
-
-### List repairs
-- GET `/vehicles/{vehicle_id}/repairs/?page=1&size=10` (auth required)
-- Response (200): RepairBasicInfo[]
-
-### Update repair
-- PATCH `/vehicles/{vehicle_id}/repairs/{repair_id}` (auth required)
-- Body (partial allowed)
+```
+- **Fields**:
+  - `name`: **Required**
+  - `repair_date`: **Required** (ISO 8601 datetime)
+  - `repair_description`: *Optional*
+  - `price`: *Optional* (can be null for warranty repairs)
+- **Response** (201):
+```json
 {
-  "name": "Oil change premium",         // OPTIONAL
-  "repair_description": "Premium OEM", // OPTIONAL
-  "price": 140.0,                      // OPTIONAL
-  "repair_data": "2025-08-09T12:00:00Z" // OPTIONAL (note: typo in schema)
+  "id": 7,
+  "name": "Oil change",
+  "repair_description": "Used OEM filter and 5W-30 synthetic oil",
+  "price": 120.0,
+  "repair_date": "2025-10-08T14:30:00Z",
+  "vehicle": {
+    "id": 42,
+    "model": "A4",
+    "mark": "Audi",
+    "client": {
+      "id": 10,
+      "name": "Ava",
+      "last_name": "Williams"
+    }
+  }
 }
-- Response → 204 No Content
+```
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Vehicle not found
+  - `422`: Validation error
 
-### Repair detail
-- GET `/vehicles/{vehicle_id}/repairs/{repair_id}` (auth required)
-- Response (200): RepairExtendedInfo
+---
 
-### Delete repair
-- DELETE `/vehicles/{vehicle_id}/repairs/{repair_id}` (auth required) → 204 No Content
+### List Repairs
+**Get paginated list of repairs for a vehicle**
+- **GET** `/vehicles/{vehicle_id}/repairs/?page=1&size=10`
+- **Auth required**: Yes
+- **Query Parameters**:
+  - `page`: Page number (default: 1)
+  - `size`: Items per page (default: 10)
+- **Response** (200):
+```json
+[
+  {
+    "id": 7,
+    "name": "Oil change",
+    "price": 120.0,
+    "repair_date": "2025-10-08T14:30:00Z"
+  },
+  {
+    "id": 8,
+    "name": "Brake service",
+    "price": null,
+    "repair_date": "2025-10-15T10:00:00Z"
+  }
+]
+```
+- **Note**: Results ordered by `repair_date` descending
+- **Errors**:
+  - `401`: Not authenticated
+
+---
+
+### Get Repair
+**Retrieve repair details by ID**
+- **GET** `/vehicles/{vehicle_id}/repairs/{repair_id}`
+- **Auth required**: Yes
+- **Response** (200):
+```json
+{
+  "id": 7,
+  "name": "Oil change",
+  "repair_description": "Used OEM filter and 5W-30 synthetic oil",
+  "price": 120.0,
+  "repair_date": "2025-10-08T14:30:00Z",
+  "vehicle": {
+    "id": 42,
+    "model": "A4",
+    "mark": "Audi",
+    "client": {
+      "id": 10,
+      "name": "Ava",
+      "last_name": "Williams"
+    }
+  }
+}
+```
+- **Note**: Updates `last_seen` timestamp when accessed
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Repair not found
+
+---
+
+### Update Repair
+**Update repair details (partial updates allowed)**
+- **PATCH** `/vehicles/{vehicle_id}/repairs/{repair_id}`
+- **Auth required**: Yes
+- **Body** (all fields optional):
+```json
+{
+  "name": "Oil change premium",
+  "repair_description": "Premium synthetic oil",
+  "price": 140.0,
+  "repair_data": "2025-10-09T14:30:00Z"
+}
+```
+- **Note**: Field name is `repair_data` (typo in schema, will be fixed)
+- **Response**: `204 No Content`
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Repair not found
+  - `422`: Validation error
+
+---
+
+### Delete Repair
+**Delete a repair**
+- **DELETE** `/vehicles/{vehicle_id}/repairs/{repair_id}`
+- **Auth required**: Yes
+- **Response**: `204 No Content`
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Repair not found
+
+---
 
 ## Search
 
-### Search all
-- GET `/search/?q=term`
-- Response (200): SearchResult[]
-- Features:
-  - Clients ranked first, then vehicles
-  - Order-independent names ("Williams Ava" matches "Ava Williams")
-  - Searches across client names, phone numbers, vehicle makes, models, VINs
-  - Fuzzy matching enabled for typo tolerance
+### Search
+**Unified search across clients and vehicles**
+- **GET** `/search/?q=query`
+- **Auth required**: No
+- **Query Parameters**:
+  - `q`: **Required** - Search query string
+- **Response** (200):
+```json
+[
+  {
+    "id": 10,
+    "type": "client",
+    "name": "Ava Williams",
+    "mark": null,
+    "model": null
+  },
+  {
+    "id": 42,
+    "type": "vehicle",
+    "name": "Audi A4",
+    "mark": null,
+    "model": null
+  }
+]
+```
+- **Features**:
+  - **Fuzzy matching**: Tolerates typos and spelling errors
+  - **Multi-field search**: Searches client names, phone numbers, vehicle marks, models, and VINs
+  - **Ranking**: Clients ranked higher than vehicles
+  - **Flexible matching**: Order-independent ("Williams Ava" matches "Ava Williams")
+- **Errors**:
+  - `422`: Missing query parameter
 
-## Schemas (response shapes)
+---
+
+## Response Schemas
+
+### MechanicOut
+```json
+{
+  "id": 1,
+  "email": "ava.williams@example.com"
+}
+```
 
 ### ClientExtendedInfo
-{ "id": 10, "name": "Noah", "last_name": "Johnson", "phone": "+1-202-555-0101", "pesel": "12345678901" }
+```json
+{
+  "id": 10,
+  "name": "Noah",
+  "last_name": "Johnson",
+  "phone": "+1-202-555-0101",
+  "pesel": "12345678901"
+}
+```
+**Note**: `phone` and `pesel` can be `null`
 
-### VehicleBasicInfo
-{ "id": 42, "model": "A4", "mark": "Audi", "client": { "id": 10, "name": "Ava", "last_name": "Williams" } }
+### ClientBasicInfo
+```json
+{
+  "id": 10,
+  "name": "Ava",
+  "last_name": "Williams"
+}
+```
 
 ### VehicleExtendedInfo
-{ "id": 42, "model": "A4", "mark": "Audi", "vin": "WAUZZZ8K9BA000000", "client": { "id": 10, "name": "Ava", "last_name": "Williams", "phone": "+1-202-555-0123", "pesel": "98765432109" } }
+```json
+{
+  "id": 42,
+  "model": "A4",
+  "mark": "Audi",
+  "vin": "WAUZZZ8K9BA000000",
+  "client": {
+    "id": 10,
+    "name": "Ava",
+    "last_name": "Williams",
+    "phone": "+1-202-555-0123",
+    "pesel": "98765432109"
+  }
+}
+```
+**Note**: `vin`, `phone`, and `pesel` can be `null`
 
-### RepairBasicInfo
-{ "id": 7, "name": "Oil change", "price": 120.0, "repair_date": "2025-08-08T12:00:00Z" }
+### VehicleBasicInfo
+```json
+{
+  "id": 42,
+  "model": "A4",
+  "mark": "Audi",
+  "client": {
+    "id": 10,
+    "name": "Ava",
+    "last_name": "Williams"
+  }
+}
+```
 
 ### RepairExtendedInfo
-{ "id": 7, "name": "Oil change", "repair_description": "OEM filter", "price": 120.0, "repair_date": "2025-08-08T12:00:00Z", "vehicle": { "id": 42, "model": "A4", "mark": "Audi", "client": { "id": 10, "name": "Ava", "last_name": "Williams" } } }
+```json
+{
+  "id": 7,
+  "name": "Oil change",
+  "repair_description": "Used OEM filter",
+  "price": 120.0,
+  "repair_date": "2025-10-08T14:30:00Z",
+  "vehicle": {
+    "id": 42,
+    "model": "A4",
+    "mark": "Audi",
+    "client": {
+      "id": 10,
+      "name": "Ava",
+      "last_name": "Williams"
+    }
+  }
+}
+```
+**Note**: `repair_description` and `price` can be `null`
+
+### RepairBasicInfo
+```json
+{
+  "id": 7,
+  "name": "Oil change",
+  "price": 120.0,
+  "repair_date": "2025-10-08T14:30:00Z"
+}
+```
+**Note**: `price` can be `null`
 
 ### SearchResult
-{ "id": 42, "type": "client", "name": "Ava Williams", "mark": null, "model": null }
+```json
+{
+  "id": 42,
+  "type": "client",
+  "name": "Ava Williams",
+  "mark": null,
+  "model": null
+}
+```
+**Note**: 
+- `type`: "client" or "vehicle"
+- For clients: `name` is filled, `mark`/`model` are null
+- For vehicles: `name` is filled with "Mark Model", `mark`/`model` are null
 
+---
 
+## Error Responses
 
+All error responses follow this format:
+```json
+{
+  "detail": "Error message"
+}
+```
 
+### Common HTTP Status Codes
+- **200**: Success
+- **201**: Created
+- **204**: No Content (successful deletion/update)
+- **400**: Bad Request (validation error, missing data)
+- **401**: Unauthorized (missing or invalid auth token)
+- **404**: Not Found
+- **409**: Conflict (duplicate data)
+- **422**: Unprocessable Entity (Pydantic validation error)
+- **500**: Internal Server Error
 
+---
+
+## Authentication Flow
+
+1. **Register**: `POST /auth/register` → Get mechanic ID
+2. **Login**: `POST /auth/login` → Receive `access_token` cookie
+3. **Make requests**: Include cookie automatically (HttpOnly)
+4. **Check auth**: `GET /auth/get_mechanics` → Verify logged in
+5. **Logout**: `POST /auth/logout` → Clear cookie
+
+---
+
+## Notes
+
+- **Timestamps**: All datetime fields use ISO 8601 format (UTC)
+- **Auto-formatting**: Client names are automatically title-cased
+- **Encryption**: PESEL data is encrypted at rest
+- **Search indexing**: Clients and vehicles are automatically indexed for search
+- **Last viewed**: Vehicle detail access updates `last_view_data` for "recently viewed" feature
+- **Repair tracking**: Repair detail access updates `last_seen` timestamp
+
+---
+
+**API Version**: 1.0  
+**Last Updated**: October 2025  
+**Base URL**: `/api/v1`

@@ -71,3 +71,6 @@ class ClientRepository(IClientRepository):
         if not pesel:
             return None
         return self.db.query(Clients).filter(Clients.pesel == pesel).first()
+    
+    def get_all_clients(self) -> list[Clients]:
+        return self.db.query(Clients).all()
