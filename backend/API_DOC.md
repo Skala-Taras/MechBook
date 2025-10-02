@@ -685,19 +685,3 @@ All error responses follow this format:
 4. **Check auth**: `GET /auth/get_mechanics` → Verify logged in
 5. **Logout**: `POST /auth/logout` → Clear cookie
 
----
-
-## Notes
-
-- **Timestamps**: All datetime fields use ISO 8601 format (UTC)
-- **Auto-formatting**: Client names are automatically title-cased
-- **Encryption**: PESEL data is encrypted at rest
-- **Search indexing**: Clients and vehicles are automatically indexed for search
-- **Last viewed**: Vehicle detail access updates `last_view_data` for "recently viewed" feature
-- **Repair tracking**: Repair detail access updates `last_seen` timestamp
-
----
-
-**API Version**: 1.0  
-**Last Updated**: October 2025  
-**Base URL**: `/api/v1`
