@@ -179,16 +179,16 @@ class TestCreateClient:
 
 
 # ============================================================================
-# TESTY WALIDACJI
+# TESTS FOR VALIDATION
 # ============================================================================
 
 @pytest.mark.api
 @pytest.mark.integration
 class TestClientValidation:
-    """Testy walidacji danych klienta"""
+    """Tests for validation of client data"""
     
     def test_create_client_missing_name(self, client: TestClient):
-        """Test braku wymaganego pola 'name'"""
+        """Test missing required field 'name'"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -202,7 +202,7 @@ class TestClientValidation:
         assert "name" in response.json()["detail"][0]["loc"]
     
     def test_create_client_missing_last_name(self, client: TestClient):
-        """Test braku wymaganego pola 'last_name'"""
+        """Test missing required field 'last_name'"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -216,7 +216,7 @@ class TestClientValidation:
         assert "last_name" in response.json()["detail"][0]["loc"]
     
     def test_create_client_pesel_too_short(self, client: TestClient):
-        """Test PESEL krótszego niż 11 znaków"""
+        """Test PESEL shorter than 11 characters"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -224,14 +224,14 @@ class TestClientValidation:
         response = client.post(BASE_URL, json={
             "name": "Jan",
             "last_name": "Kowalski",
-            "pesel": "123456789"  # 9 znaków - za krótkie
+            "pesel": "123456789"  # 9 characters - too short
         })
         
         # Assert
         assert response.status_code == 422
     
     def test_create_client_pesel_too_long(self, client: TestClient):
-        """Test PESEL dłuższego niż 11 znaków"""
+        """Test PESEL longer than 11 characters"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -239,14 +239,14 @@ class TestClientValidation:
         response = client.post(BASE_URL, json={
             "name": "Jan",
             "last_name": "Kowalski",
-            "pesel": "123456789012"  # 12 znaków - za długie
+            "pesel": "123456789012"  # 12 characters - too long
         })
         
         # Assert
         assert response.status_code == 422
     
     def test_create_client_pesel_exactly_11_chars(self, client: TestClient):
-        """Test poprawnego PESEL - dokładnie 11 znaków"""
+        """Test valid PESEL - exactly 11 characters"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -254,7 +254,7 @@ class TestClientValidation:
         response = client.post(BASE_URL, json={
             "name": "Jan",
             "last_name": "Kowalski",
-            "pesel": "12345678901"  # Dokładnie 11
+            "pesel": "12345678901"  # Exactly 11
         })
         
         # Assert
@@ -262,31 +262,31 @@ class TestClientValidation:
 
 
 # ============================================================================
-# TESTY DUPLIKATÓW
+# TESTS FOR DUPLICATES
 # ============================================================================
 
 @pytest.mark.api
 @pytest.mark.integration
 class TestClientDuplicates:
-    """Testy sprawdzające duplikaty klientów"""
+    """Tests for checking duplicates of clients"""
     
     def test_create_client_duplicate_name_and_last_name(self, client: TestClient):
         """
-        GIVEN: Klient "Jan Kowalski" już istnieje
-        WHEN: Próba utworzenia drugiego "Jan Kowalski"
+        GIVEN: Client "Jan Kowalski" already exists
+        WHEN: Attempt to create another "Jan Kowalski"
         THEN: Status 409 Conflict
         """
         # Arrange
         create_authenticated_mechanic(client)
         
-        # Utwórz pierwszego klienta
+        # Create first client
         create_test_client(client, name="Jan", last_name="Kowalski")
         
-        # Act - próba utworzenia drugiego z tym samym imieniem
+        # Act 
         response = client.post(BASE_URL, json={
             "name": "Jan",
             "last_name": "Kowalski",
-            "phone": "999888777"  # Inny telefon
+            "phone": "999888777"  # Another phone
         })
         
         # Assert
@@ -295,14 +295,14 @@ class TestClientDuplicates:
     
     def test_create_client_duplicate_name_case_insensitive(self, client: TestClient):
         """
-        Test case-insensitive sprawdzania duplikatów.
+        Test case-insensitive checking for duplicates.
         "Jan Kowalski" == "jan kowalski" == "JAN KOWALSKI"
         """
         # Arrange
         create_authenticated_mechanic(client)
         create_test_client(client, name="Jan", last_name="Kowalski")
         
-        # Act - różna wielkość liter
+        # Act 
         response = client.post(BASE_URL, json={
             "name": "JAN",
             "last_name": "KOWALSKI"
@@ -313,8 +313,8 @@ class TestClientDuplicates:
     
     def test_create_client_duplicate_phone(self, client: TestClient):
         """
-        GIVEN: Klient z numerem "123456789" już istnieje
-        WHEN: Próba utworzenia klienta z tym samym numerem
+        GIVEN: Client with phone "123456789" already exists
+        WHEN: Attempt to create client with same phone
         THEN: Status 409 Conflict
         """
         # Arrange
@@ -325,7 +325,7 @@ class TestClientDuplicates:
         response = client.post(BASE_URL, json={
             "name": "Anna",
             "last_name": "Nowak",
-            "phone": "123456789"  # Ten sam numer
+            "phone": "123456789"  # Same phone
         })
         
         # Assert
@@ -334,8 +334,8 @@ class TestClientDuplicates:
     
     def test_create_client_duplicate_pesel(self, client: TestClient):
         """
-        GIVEN: Klient z PESEL "12345678901" już istnieje
-        WHEN: Próba utworzenia klienta z tym samym PESEL
+        GIVEN: Client with PESEL "12345678901" already exists
+        WHEN: Attempt to create client with same PESEL
         THEN: Status 409 Conflict
         """
         # Arrange
@@ -346,7 +346,7 @@ class TestClientDuplicates:
         response = client.post(BASE_URL, json={
             "name": "Piotr",
             "last_name": "Wiśniewski",
-            "pesel": "12345678901"  # Ten sam PESEL
+            "pesel": "12345678901"  # Same PESEL
         })
         
         # Assert
@@ -355,13 +355,13 @@ class TestClientDuplicates:
     
     def test_create_multiple_clients_with_null_phone(self, client: TestClient):
         """
-        Test: wielu klientów może mieć NULL phone (NULL != NULL w SQL).
+        Test: multiple clients can have NULL phone (NULL != NULL in SQL).
         To powinno być dozwolone.
         """
         # Arrange
         create_authenticated_mechanic(client)
         
-        # Act - utwórz dwóch klientów bez telefonu
+        # Act - create two clients without phone
         response1 = client.post(BASE_URL, json={
             "name": "Jan",
             "last_name": "Kowalski"
@@ -376,7 +376,7 @@ class TestClientDuplicates:
         assert response2.status_code == 201
     
     def test_create_multiple_clients_with_null_pesel(self, client: TestClient):
-        """Test: wielu klientów może mieć NULL pesel"""
+        """Test: multiple clients can have NULL pesel"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -398,7 +398,7 @@ class TestClientDuplicates:
 
 
 # ============================================================================
-# TESTY POBIERANIA KLIENTA (READ)
+# TESTS FOR GETTING CLIENT (READ)
 # ============================================================================
 
 @pytest.mark.api
@@ -462,7 +462,7 @@ class TestGetClient:
 
 
 # ============================================================================
-# TESTY AKTUALIZACJI KLIENTA (UPDATE)
+# TESTS FOR UPDATING CLIENT (UPDATE)
 # ============================================================================
 
 @pytest.mark.api
@@ -471,7 +471,7 @@ class TestUpdateClient:
     """Tests for PUT /api/v1/clients/{client_id} - updating client"""
     
     def test_update_client_name(self, client: TestClient):
-        """Test updating client's name"""
+        """Test updating client's name (partial update)"""
         # Arrange
         create_authenticated_mechanic(client)
         create_response = create_test_client(client, name="Jan")
@@ -488,7 +488,7 @@ class TestUpdateClient:
         assert response.json()["last_name"] == "Kowalski"  # Not changed
     
     def test_update_client_all_fields(self, client: TestClient):
-        """Test updating all fields"""
+        """Test updating all fields (full update)"""
         # Arrange
         create_authenticated_mechanic(client)
         create_response = create_test_client(client)
@@ -513,7 +513,7 @@ class TestUpdateClient:
     def test_update_client_partial_update(self, client: TestClient):
         """
         Test partial update (PATCH-like behavior).
-        Tylko podane pola są aktualizowane.
+        Only given fields are updated.
         """
         # Arrange
         create_authenticated_mechanic(client)
@@ -525,7 +525,7 @@ class TestUpdateClient:
         )
         client_id = create_response.json()["id"]
         
-        # Act - update only phone
+        # Act 
         response = client.put(f"{BASE_URL}/{client_id}", json={
             "phone": "987654321"
         })

@@ -1,13 +1,10 @@
-"""
-Search engine endpoint tests (/api/v1/search).
-Tests unified search across clients and vehicles with fuzzy matching.
-"""
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from tests.fixtures.helpers import AuthHelper, ClientHelper
-from tests.fixtures.factories import MechanicFactory
+from tests.fixtures.factories import MechanicFactory, ClientFactory
 from app.schemas.search import SearchResult
 
 
@@ -86,7 +83,7 @@ class TestSearchEndpoint:
         """Search for client by phone number"""
         # Arrange
         mock_results = create_mock_search_results([
-            {"id": 1, "type": "client", "name": "Jane Doe"}
+            {"id": 1, "type": "client", "name": "Jane Doe", "phone": "123456789"}
         ])
         mock_search.return_value = mock_results
         
@@ -104,25 +101,34 @@ class TestSearchEndpoint:
         """Search for vehicle by VIN"""
         # Arrange
         mock_results = create_mock_search_results([
-            {"id": 1, "type": "vehicle", "name": "Honda Civic"}
+            {"id": 1, "type": "vehicle", "name": "Honda Civic", "vin": "1112345678901234"}
         ])
         mock_search.return_value = mock_results
         
         # Act
-        response = client.get("/api/v1/search?q=VIN12345678901234")
+        response = client.get("/api/v1/search?q=1112345678901234")
         
         # Assert
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
+        assert data[0]["type"] == "vehicle"
+        assert data[0]["name"] == "Honda Civic"
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_mixed_results(self, mock_search, client: TestClient):
-        """Search returns both clients and vehicles"""
-        # Arrange
+        """Search returns both clients and vehicles when searching by client surname
+        
+        Explanation: When searching for "Kowal", Elasticsearch finds:
+        - Clients with "Kowal" in their name (John Kowalski, Anna Kowalska)
+        - Vehicles owned by those clients (matched through 'client_name' field)
+        
+        This works because vehicles are indexed with their owner's name in 'client_name' field.
+        """
+        # Arrange - Simulate Elasticsearch returning clients and their vehicle
         mock_results = create_mock_search_results([
             {"id": 1, "type": "client", "name": "John Kowalski"},
-            {"id": 1, "type": "vehicle", "name": "Toyota Camry"},
+            {"id": 1, "type": "vehicle", "name": "John Kowalski", "mark": "Toyota", "model": "Camry"},  # Owned by John Kowalski
             {"id": 2, "type": "client", "name": "Anna Kowalska"}
         ])
         mock_search.return_value = mock_results
@@ -133,10 +139,17 @@ class TestSearchEndpoint:
         # Assert
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 3
+        assert len(data) == 3  # 2 clients + 1 vehicle
+        
         types = [item["type"] for item in data]
         assert "client" in types
         assert "vehicle" in types
+        
+        # Verify counts
+        client_count = sum(1 for item in data if item["type"] == "client")
+        vehicle_count = sum(1 for item in data if item["type"] == "vehicle")
+        assert client_count == 2, "Should have 2 clients (John Kowalski, Anna Kowalska)"
+        assert vehicle_count == 1, "Should have 1 vehicle (Toyota Camry owned by John Kowalski)"
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_empty_results(self, mock_search, client: TestClient):
@@ -200,6 +213,7 @@ class TestSearchEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
+        assert data[0]["name"] == "John Doe"
 
 
 # ============================================================================
@@ -229,8 +243,7 @@ class TestSearchValidation:
         response = client.get("/api/v1/search?q=")
         
         # Assert
-        # Empty string may be rejected (422) or return empty results (200)
-        assert response.status_code in [200, 422]
+        assert response.status_code == 200
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_very_long_query(self, mock_search, client: TestClient):
@@ -271,6 +284,7 @@ class TestSearchFuzzyMatching:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
+        assert data[0]["name"] == "John Smith"
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_partial_match(self, mock_search, client: TestClient):
@@ -288,6 +302,7 @@ class TestSearchFuzzyMatching:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
+        assert data[0]["name"] == "Toyota Corolla"
 
 
 # ============================================================================
@@ -313,6 +328,9 @@ class TestSearchEdgeCases:
         
         # Assert
         assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["name"] == "Client 123"
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_with_unicode_characters(self, mock_search, client: TestClient):
@@ -330,6 +348,7 @@ class TestSearchEdgeCases:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
+        assert data[0]["name"] == "Łukasz Żółtek"
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_returns_limited_results(self, mock_search, client: TestClient):
@@ -347,7 +366,6 @@ class TestSearchEdgeCases:
         # Assert
         assert response.status_code == 200
         data = response.json()
-        # Should return all results (no pagination in current implementation)
         assert len(data) == 100
     
     @patch('app.api.v1.endpoints.search.search_service.search')

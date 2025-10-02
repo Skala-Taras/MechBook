@@ -1,5 +1,5 @@
 """
-Fabryki danych testowych.
+Factories for test data.
 
 Ten moduł zawiera klasy i funkcje do generowania danych testowych
 dla modeli aplikacji. Używamy prostych fabryk bez dodatkowych bibliotek.
@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 
 class MechanicFactory:
-    """Fabryka do tworzenia danych mechaników."""
+    """Factory for creating mechanic data."""
     
     _counter = 0
     
@@ -20,15 +20,15 @@ class MechanicFactory:
         password: str = "password123"
     ) -> Dict[str, Any]:
         """
-        Tworzy dane mechanika (bez zapisu do bazy).
+        Creates mechanic data (without saving to database).
         
         Args:
-            email: Email (jeśli None, generuje unikalny)
-            name: Imię (jeśli None, generuje)
-            password: Hasło (domyślnie 'password123')
+            email: Email (if None, generates unique)
+            name: Name (if None, generates)
+            password: Password (default 'password123')
         
         Returns:
-            Dict z danymi do rejestracji
+            Dict with registration data
         """
         cls._counter += 1
         
@@ -47,25 +47,25 @@ class MechanicFactory:
     @classmethod
     def build_batch(cls, size: int = 3, **kwargs) -> list[Dict[str, Any]]:
         """
-        Tworzy listę danych mechaników.
+        Creates a list of mechanic data.
         
         Args:
-            size: Liczba mechaników do utworzenia
-            **kwargs: Dodatkowe argumenty przekazywane do build()
+            size: Number of mechanics to create
+            **kwargs: Additional arguments passed to build()
         
         Returns:
-            Lista słowników z danymi mechaników
+            List of dictionaries with mechanic data
         """
         return [cls.build(**kwargs) for _ in range(size)]
     
     @classmethod
     def reset_counter(cls):
-        """Resetuje licznik (przydatne w fixture'ach)."""
+        """Resets the counter (useful in fixtures)."""
         cls._counter = 0
 
 
 class ClientFactory:
-    """Fabryka do tworzenia danych klientów."""
+    """Factory for creating client data."""
     
     _counter = 0
     
@@ -77,7 +77,7 @@ class ClientFactory:
         phone_number: str = None,
         email: str = None
     ) -> Dict[str, Any]:
-        """Tworzy dane klienta."""
+        """Creates client data."""
         cls._counter += 1
         
         return {
@@ -89,17 +89,17 @@ class ClientFactory:
     
     @classmethod
     def build_batch(cls, size: int = 3, **kwargs) -> list[Dict[str, Any]]:
-        """Tworzy listę danych klientów."""
+        """Creates a list of client data."""
         return [cls.build(**kwargs) for _ in range(size)]
     
     @classmethod
     def reset_counter(cls):
-        """Resetuje licznik."""
+        """Resets the counter."""
         cls._counter = 0
 
 
 class VehicleFactory:
-    """Fabryka do tworzenia danych pojazdów."""
+    """Factory for creating vehicle data."""
     
     _counter = 0
     
@@ -114,7 +114,7 @@ class VehicleFactory:
         horse_power: str = "150",
         fuel_type: str = "Benzyna"
     ) -> Dict[str, Any]:
-        """Tworzy dane pojazdu."""
+        """Creates vehicle data."""
         cls._counter += 1
         
         return {
@@ -129,19 +129,19 @@ class VehicleFactory:
     
     @classmethod
     def build_batch(cls, size: int = 3, **kwargs) -> list[Dict[str, Any]]:
-        """Tworzy listę danych pojazdów."""
+        """Creates a list of vehicle data."""
         return [cls.build(**kwargs) for _ in range(size)]
     
     @classmethod
     def reset_counter(cls):
-        """Resetuje licznik."""
+        """Resets the counter."""
         cls._counter = 0
 
 
-# Fixture do resetowania fabryk przed każdym testem
+# Fixture to reset factories before each test
 def reset_all_factories():
-    """Resetuje wszystkie liczniki fabryk."""
-    MechanicFactory.reset_counter()
+    """Resets all factory counters."""
+    MechanicFactory.reset_counter() 
     ClientFactory.reset_counter()
     VehicleFactory.reset_counter()
 

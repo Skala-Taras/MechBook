@@ -1,11 +1,11 @@
 """
-Testy jednostkowe dla modułu app.core.security.
+Unit tests for app.core.security module.
 
-Testuje:
-- Hashowanie i weryfikacja haseł
-- Tworzenie i weryfikacja tokenów JWT
-- Szyfrowanie/deszyfrowanie danych
-- Normalizacja VIN i nazw
+Tests:
+- Password hashing and verification
+- JWT token creation and verification
+- Data encryption/decryption
+- VIN and name normalization
 """
 import pytest
 from datetime import timedelta
@@ -25,15 +25,15 @@ from app.core.security import (
 
 
 # ============================================================================
-# TESTY HASHOWANIA HASEŁ
+# PASSWORD HASHING TESTS
 # ============================================================================
 
 @pytest.mark.unit
 class TestPasswordHashing:
-    """Testy hashowania i weryfikacji haseł"""
+    """Tests for password hashing and verification"""
     
     def test_hash_password_returns_different_than_original(self):
-        """Hash hasła powinien być inny niż oryginał"""
+        """Password hash should be different than original"""
         password = "my_secret_password"
         hashed = hash_password(password)
         
@@ -41,7 +41,7 @@ class TestPasswordHashing:
         assert len(hashed) > 0
     
     def test_same_password_different_hashes(self):
-        """To samo hasło powinno dawać różne hashe (salt)"""
+        """Same password should produce different hashes (salt)"""
         password = "password123"
         hash1 = hash_password(password)
         hash2 = hash_password(password)
@@ -49,14 +49,14 @@ class TestPasswordHashing:
         assert hash1 != hash2
     
     def test_verify_correct_password(self):
-        """Weryfikacja poprawnego hasła powinna zwrócić True"""
+        """Verification of correct password should return True"""
         password = "correct_password"
         hashed = hash_password(password)
         
         assert verify_password(password, hashed) is True
     
     def test_verify_wrong_password(self):
-        """Weryfikacja błędnego hasła powinna zwrócić False"""
+        """Verification of wrong password should return False"""
         password = "correct_password"
         wrong_password = "wrong_password"
         hashed = hash_password(password)
@@ -64,36 +64,36 @@ class TestPasswordHashing:
         assert verify_password(wrong_password, hashed) is False
     
     def test_verify_empty_password(self):
-        """Weryfikacja pustego hasła"""
+        """Verification of empty password"""
         hashed = hash_password("password123")
         
         assert verify_password("", hashed) is False
 
 
 # ============================================================================
-# TESTY TOKENÓW JWT
+# JWT TOKEN TESTS
 # ============================================================================
 
 @pytest.mark.unit
 class TestJWTTokens:
-    """Testy tworzenia i weryfikacji tokenów JWT"""
+    """Tests for JWT token creation and verification"""
     
     def test_create_access_token(self):
-        """Token JWT powinien być string'iem"""
+        """JWT token should be a string"""
         data = {"sub": "123", "role": "mechanic"}
         token = create_access_jwt_token(data)
         
         assert isinstance(token, str)
         assert len(token) > 0
-        assert token.count('.') == 2  # JWT ma 3 części: header.payload.signature
+        assert token.count('.') == 2  # JWT has 3 parts: header.payload.signature
     
     def test_create_token_with_custom_expiration(self):
-        """Token z niestandardowym czasem wygaśnięcia"""
+        """Token with custom expiration time"""
         data = {"sub": "123"}
         token = create_access_jwt_token(data, expires_delta=timedelta(hours=1))
         
         assert isinstance(token, str)
-        # Token powinien być dekodowalny przez jose
+        # Token should be decodable by jose
         from jose import jwt
         from app.core.config import settings
         
@@ -102,7 +102,7 @@ class TestJWTTokens:
         assert "exp" in decoded
     
     def test_create_password_reset_token(self):
-        """Token resetowania hasła"""
+        """Password reset token creation"""
         email = "test@example.com"
         token = create_password_reset_token(email)
         
@@ -110,7 +110,7 @@ class TestJWTTokens:
         assert len(token) > 0
     
     def test_verify_password_reset_token_valid(self):
-        """Weryfikacja poprawnego tokenu resetowania hasła"""
+        """Verification of valid password reset token"""
         email = "test@example.com"
         token = create_password_reset_token(email)
         
@@ -121,14 +121,14 @@ class TestJWTTokens:
         assert "token_id" in result
     
     def test_verify_password_reset_token_invalid(self):
-        """Weryfikacja niepoprawnego tokenu"""
+        """Verification of invalid token"""
         result = verify_password_reset_token("invalid.token.here")
         
         assert result is None
     
     def test_verify_password_reset_token_wrong_scope(self):
-        """Token z niewłaściwym scope nie powinien być zaakceptowany"""
-        # Utwórz zwykły access token (bez scope="password_reset")
+        """Token with wrong scope should not be accepted"""
+        # Create regular access token (without scope="password_reset")
         token = create_access_jwt_token({"sub": "test@example.com"})
         
         result = verify_password_reset_token(token)
@@ -137,15 +137,15 @@ class TestJWTTokens:
 
 
 # ============================================================================
-# TESTY SZYFROWANIA
+# ENCRYPTION TESTS
 # ============================================================================
 
 @pytest.mark.unit
 class TestEncryption:
-    """Testy szyfrowania i deszyfrowania danych"""
+    """Tests for data encryption and decryption"""
     
     def test_encrypt_data(self):
-        """Szyfrowanie powinno zwrócić bytes"""
+        """Encryption should return bytes"""
         data = "secret_data"
         encrypted = encrypt_data(data)
         
@@ -153,7 +153,7 @@ class TestEncryption:
         assert encrypted != data.encode()
     
     def test_decrypt_data(self):
-        """Deszyfrowanie powinno zwrócić oryginalną wartość"""
+        """Decryption should return original value"""
         original = "secret_data"
         encrypted = encrypt_data(original)
         decrypted = decrypt_data(encrypted)
@@ -161,7 +161,7 @@ class TestEncryption:
         assert decrypted == original
     
     def test_encrypt_decrypt_roundtrip(self):
-        """Test pełnego cyklu: szyfruj → deszyfruj"""
+        """Test full cycle: encrypt → decrypt"""
         test_cases = [
             "simple text",
             "text with spaces and 123 numbers",
@@ -175,80 +175,80 @@ class TestEncryption:
             assert decrypted == original, f"Failed for: {original}"
     
     def test_encrypt_empty_string(self):
-        """Szyfrowanie pustego stringa"""
+        """Encryption of empty string"""
         result = encrypt_data("")
         assert result is None
     
     def test_decrypt_none(self):
-        """Deszyfrowanie None"""
+        """Decryption of None"""
         result = decrypt_data(None)
         assert result is None
 
 
 # ============================================================================
-# TESTY NORMALIZACJI
+# NORMALIZATION TESTS
 # ============================================================================
 
 @pytest.mark.unit
 class TestNormalization:
-    """Testy funkcji normalizujących dane"""
+    """Tests for data normalization functions"""
     
     def test_normalize_vin_uppercase(self):
-        """VIN powinien być uppercase"""
+        """VIN should be uppercase"""
         vin = "abc123def456"
         normalized = normalize_vin(vin)
         
         assert normalized == "ABC123DEF456"
     
     def test_normalize_vin_removes_spaces(self):
-        """VIN powinien nie mieć spacji"""
+        """VIN should have no spaces"""
         vin = "ABC 123 DEF 456"
         normalized = normalize_vin(vin)
         
         assert normalized == "ABC123DEF456"
     
     def test_normalize_vin_empty(self):
-        """Normalizacja pustego VIN"""
+        """Normalization of empty VIN"""
         assert normalize_vin("") == ""
         assert normalize_vin(None) is None
     
     def test_normalize_name_lowercase(self):
-        """Nazwa powinna być lowercase"""
+        """Name should be lowercase"""
         name = "John DOE"
         normalized = normalize_name(name)
         
         assert normalized == "john doe"
     
     def test_normalize_name_removes_extra_spaces(self):
-        """Nazwa powinna mieć pojedyncze spacje"""
+        """Name should have single spaces"""
         name = "John   Doe    Smith"
         normalized = normalize_name(name)
         
         assert normalized == "john doe smith"
     
     def test_normalize_name_strips_leading_trailing(self):
-        """Nazwa powinna być bez spacji na początku/końcu"""
+        """Name should have no leading/trailing spaces"""
         name = "  John Doe  "
         normalized = normalize_name(name)
         
         assert normalized == "john doe"
     
     def test_normalize_name_empty(self):
-        """Normalizacja pustego imienia"""
+        """Normalization of empty name"""
         assert normalize_name("") == ""
         assert normalize_name(None) is None
 
 
 # ============================================================================
-# TESTY VIN FINGERPRINT
+# VIN FINGERPRINT TESTS
 # ============================================================================
 
 @pytest.mark.unit
 class TestVINFingerprint:
-    """Testy tworzenia fingerprint VIN"""
+    """Tests for VIN fingerprint creation"""
     
     def test_vin_fingerprint_consistent(self):
-        """Ten sam VIN powinien dawać ten sam fingerprint"""
+        """Same VIN should produce same fingerprint"""
         vin = "ABC123DEF456"
         fp1 = vin_fingerprint(vin)
         fp2 = vin_fingerprint(vin)
@@ -256,7 +256,7 @@ class TestVINFingerprint:
         assert fp1 == fp2
     
     def test_vin_fingerprint_case_insensitive(self):
-        """Fingerprint powinien być niezależny od wielkości liter"""
+        """Fingerprint should be case-insensitive"""
         vin_upper = "ABC123DEF456"
         vin_lower = "abc123def456"
         
@@ -266,7 +266,7 @@ class TestVINFingerprint:
         assert fp1 == fp2
     
     def test_vin_fingerprint_ignores_spaces(self):
-        """Fingerprint powinien ignorować spacje"""
+        """Fingerprint should ignore spaces"""
         vin1 = "ABC123DEF456"
         vin2 = "ABC 123 DEF 456"
         
@@ -276,7 +276,7 @@ class TestVINFingerprint:
         assert fp1 == fp2
     
     def test_vin_fingerprint_different_vins(self):
-        """Różne VIN-y powinny dawać różne fingerprint'y"""
+        """Different VINs should produce different fingerprints"""
         vin1 = "ABC123DEF456"
         vin2 = "XYZ789GHI012"
         
@@ -286,27 +286,27 @@ class TestVINFingerprint:
         assert fp1 != fp2
     
     def test_vin_fingerprint_empty(self):
-        """Fingerprint pustego VIN"""
+        """Fingerprint of empty VIN"""
         assert vin_fingerprint("") is None
         assert vin_fingerprint(None) is None
     
     def test_vin_fingerprint_is_hash(self):
-        """Fingerprint powinien być hexadecymalnym hashem"""
+        """Fingerprint should be a hexadecimal hash"""
         vin = "ABC123DEF456"
         fp = vin_fingerprint(vin)
         
         assert isinstance(fp, str)
-        assert len(fp) == 64  # SHA256 hex = 64 znaki
+        assert len(fp) == 64  # SHA256 hex = 64 characters
         assert all(c in '0123456789abcdef' for c in fp)
 
 
 # ============================================================================
-# TESTY PARAMETRYZOWANE
+# PARAMETRIZED TESTS
 # ============================================================================
 
 @pytest.mark.unit
 class TestParametrized:
-    """Testy parametryzowane dla różnych przypadków"""
+    """Parametrized tests for various cases"""
     
     @pytest.mark.parametrize("password", [
         "short",
@@ -316,7 +316,7 @@ class TestParametrized:
         "ąćęłńóśźż",
     ])
     def test_password_hash_verify_various(self, password):
-        """Test hashowania różnych haseł"""
+        """Test hashing various passwords"""
         hashed = hash_password(password)
         assert verify_password(password, hashed) is True
         assert verify_password(password + "x", hashed) is False
@@ -328,7 +328,7 @@ class TestParametrized:
         ("aBc 123", "ABC123"),
     ])
     def test_normalize_vin_cases(self, vin, expected):
-        """Test różnych przypadków normalizacji VIN"""
+        """Test various VIN normalization cases"""
         assert normalize_vin(vin) == expected
     
     @pytest.mark.parametrize("name,expected", [
@@ -338,6 +338,6 @@ class TestParametrized:
         ("john doe", "john doe"),
     ])
     def test_normalize_name_cases(self, name, expected):
-        """Test różnych przypadków normalizacji nazw"""
+        """Test various name normalization cases"""
         assert normalize_name(name) == expected
 
