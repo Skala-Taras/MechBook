@@ -1,14 +1,3 @@
-"""
-Kompletne testy dla endpointów klientów (/api/v1/clients).
-
-Pokrycie:
-- CRUD operations (Create, Read, Update, Delete)
-- Walidacja danych (PESEL, wymagane pola)
-- Duplikaty (name+last_name, phone, pesel)
-- Autoryzacja (wymagany login)
-- Formatowanie nazw (Title case)
-- Edge cases
-"""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -24,7 +13,7 @@ BASE_URL = "/api/v1/clients"
 # ============================================================================
 
 def create_authenticated_mechanic(client: TestClient):
-    """Tworzy i loguje mechanika, zwraca jego dane"""
+    """Creates and logs in a mechanic, returns its data"""
     mechanic_data = MechanicFactory.build()
     result = AuthHelper.register_and_login(
         client,
@@ -36,7 +25,7 @@ def create_authenticated_mechanic(client: TestClient):
 
 
 def create_test_client(client: TestClient, **overrides):
-    """Tworzy klienta przez API i zwraca odpowiedź"""
+    """Creates a client through API and returns the response"""
     default_data = {
         "name": "Jan",
         "last_name": "Kowalski",
@@ -50,19 +39,19 @@ def create_test_client(client: TestClient, **overrides):
 
 
 # ============================================================================
-# TESTY TWORZENIA KLIENTA (CREATE)
+# CLIENT CREATION TESTS (CREATE)
 # ============================================================================
 
 @pytest.mark.api
 @pytest.mark.integration
 class TestCreateClient:
-    """Testy POST /api/v1/clients - tworzenie klienta"""
+    """Tests for POST /api/v1/clients - creating a client"""
     
     def test_create_client_success(self, client: TestClient):
         """
-        GIVEN: Zalogowany mechanik i poprawne dane klienta
-        WHEN: POST /clients z danymi
-        THEN: Status 201, zwrócone dane klienta z ID
+        GIVEN: Logged in mechanic and correct client data
+        WHEN: POST /clients with data
+        THEN: Status 201, returned client data with ID
         """
         # Arrange
         create_authenticated_mechanic(client)
@@ -87,7 +76,7 @@ class TestCreateClient:
         assert isinstance(data["id"], int)
     
     def test_create_client_without_optional_fields(self, client: TestClient):
-        """Test creating client without optional fields (phone, pesel)"""
+        """Tests creating client without optional fields (phone, pesel)"""
         # Arrange
         create_authenticated_mechanic(client)
         client_data = {
@@ -107,7 +96,7 @@ class TestCreateClient:
         assert data["pesel"] is None
     
     def test_create_client_with_only_phone(self, client: TestClient):
-        """Test tworzenia klienta tylko z telefonem (bez PESEL)"""
+        """Test creating client with only phone (without PESEL)"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -124,7 +113,7 @@ class TestCreateClient:
         assert response.json()["pesel"] is None
     
     def test_create_client_with_only_pesel(self, client: TestClient):
-        """Test tworzenia klienta tylko z PESEL (bez telefonu)"""
+        """Test creating client with only PESEL (without phone)"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -142,7 +131,7 @@ class TestCreateClient:
     
     def test_create_client_formats_names_to_title_case(self, client: TestClient):
         """
-        Test automatycznego formatowania imion do Title Case.
+        Test automatic name formatting to Title Case.
         "jan kowalski" → "Jan Kowalski"
         """
         # Arrange
@@ -157,11 +146,11 @@ class TestCreateClient:
         # Assert
         assert response.status_code == 201
         data = response.json()
-        assert data["name"] == "Jan"  # Sformatowane
-        assert data["last_name"] == "Kowalski"  # Sformatowane
+        assert data["name"] == "Jan"  # Formatted
+        assert data["last_name"] == "Kowalski"  # Formatted
     
     def test_create_client_trims_whitespace(self, client: TestClient):
-        """Test usuwania białych znaków z początku i końca"""
+        """Test trimming whitespace from beginning and end"""
         # Arrange
         create_authenticated_mechanic(client)
         
@@ -664,7 +653,7 @@ class TestClientAuthorization:
     
     def test_create_client_without_auth(self, client: TestClient):
         """Test creating client without login"""
-        # Act - brak logowania
+        # Act - no login
         response = client.post(BASE_URL, json={
             "name": "Jan",
             "last_name": "Kowalski"

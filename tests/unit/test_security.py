@@ -1,12 +1,3 @@
-"""
-Unit tests for app.core.security module.
-
-Tests:
-- Password hashing and verification
-- JWT token creation and verification
-- Data encryption/decryption
-- VIN and name normalization
-"""
 import pytest
 from datetime import timedelta
 

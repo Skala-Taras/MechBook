@@ -1,9 +1,3 @@
-"""
-Factories for test data.
-
-Ten moduł zawiera klasy i funkcje do generowania danych testowych
-dla modeli aplikacji. Używamy prostych fabryk bez dodatkowych bibliotek.
-"""
 from typing import Dict, Any
 
 

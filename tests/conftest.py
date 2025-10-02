@@ -1,12 +1,3 @@
-"""
-Główna konfiguracja testów PyTest.
-
-Ten plik zawiera fixture'y, które są dostępne dla wszystkich testów:
-- test_engine: silnik bazy danych SQLite (scope: session)
-- db_session: sesja dla każdego testu z czyszczeniem bazy
-- app: instancja FastAPI z nadpisanymi zależnościami
-- client: TestClient do testowania API
-"""
 import os
 import sys
 import pathlib
@@ -19,7 +10,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
 
 # ============================================================================
-# KONFIGURACJA ŚRODOWISKA
+# CONFIGURATION OF THE ENVIRONMENT
 # ============================================================================
 os.environ.setdefault("URL_DB", "sqlite:///./.tmp_dummy.db")
 os.environ.setdefault("ELASTIC_HOST", "http://localhost:9200")
@@ -42,10 +33,8 @@ if str(BACKEND_DIR) not in sys.path:
 
 os.chdir(str(BACKEND_DIR))
 
-# Mockuj Elasticsearch PRZED importem aplikacji
 sys.modules['app.services.search_engine_service'] = MagicMock()
 
-# Teraz bezpiecznie importuj
 from app.db.base import Base
 from app.dependencies.db import get_db
 
@@ -53,12 +42,12 @@ TEST_DB_PATH = BACKEND_DIR / "test.db"
 TEST_DB_URL = f"sqlite:///{TEST_DB_PATH}"
 
 # ============================================================================
-# FIXTURE'Y BAZY DANYCH
+# DATABASE FIXTURES
 # ============================================================================
 
 @pytest.fixture(scope="session")
 def test_engine():
-    """Tworzy silnik bazy danych raz na całą sesję testową."""
+    """Creates a database engine once for the entire test session."""
     engine = create_engine(
         TEST_DB_URL,
         connect_args={"check_same_thread": False},
@@ -84,18 +73,16 @@ def test_engine():
 @pytest.fixture(scope="function")
 def db_session(test_engine) -> Session:
     """
-    Sesja bazy danych dla każdego testu.
-    
-    Przed każdym testem czyści wszystkie tabele, aby testy były izolowane.
+    Database session for each test.
     """
-    # Czyść wszystkie tabele przed testem
+    # Clear all tables before each test
     connection = test_engine.connect()
     for table in reversed(Base.metadata.sorted_tables):
         connection.execute(table.delete())
     connection.commit()
     connection.close()
     
-    # Utwórz nową sesję dla testu
+    # Create a new session for the test
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
     session = SessionLocal()
     
@@ -105,12 +92,12 @@ def db_session(test_engine) -> Session:
 
 
 # ============================================================================
-# FIXTURE'Y APLIKACJI
+# APPLICATION FIXTURES
 # ============================================================================
 
 @pytest.fixture(scope="function")
 def app(db_session: Session):
-    """Zwraca instancję FastAPI z nadpisanymi zależnościami."""
+    """Returns a FastAPI instance with overridden dependencies."""
     # Import app po mockowaniu Elasticsearch
     from app.main import app as fastapi_app
     
@@ -140,17 +127,17 @@ def app(db_session: Session):
 
 @pytest.fixture(scope="function")
 def client(app):
-    """Zwraca TestClient FastAPI do testowania endpointów HTTP."""
+    """Returns a TestClient FastAPI for testing HTTP endpoints."""
     with TestClient(app, raise_server_exceptions=True) as test_client:
         yield test_client
 
 
 # ============================================================================
-# FIXTURE'Y FABRYK
+# FACTORY FIXTURES
 # ============================================================================
 
 @pytest.fixture(autouse=True, scope="function")
 def reset_factories():
-    """Automatycznie resetuje wszystkie fabryki przed każdym testem."""
+    """Automatically resets all factories before each test."""
     from tests.fixtures.factories import reset_all_factories
     reset_all_factories()

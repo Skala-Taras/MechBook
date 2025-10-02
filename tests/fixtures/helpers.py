@@ -1,17 +1,9 @@
-"""
-Funkcje pomocnicze do testowania API.
-
-Te funkcje pomagają w:
-- Rejestracji i logowaniu użytkowników
-- Tworzeniu danych testowych przez API
-- Weryfikacji odpowiedzi
-"""
 from typing import Dict, Any, Optional
 from fastapi.testclient import TestClient
 
 
 class AuthHelper:
-    """Helper do operacji związanych z autentykacją."""
+    """Helper for operations related to authentication."""
     
     BASE_URL = "/api/v1/auth"
     
@@ -23,10 +15,10 @@ class AuthHelper:
         password: str = "password123"
     ) -> Dict[str, Any]:
         """
-        Rejestruje nowego użytkownika.
+        Registers a new user.
         
         Returns:
-            Dict z kluczami: response, status_code, data (jeśli sukces)
+            Dict with keys: response, status_code, data (if success)
         """
         payload = {
             "email": email,
@@ -53,10 +45,10 @@ class AuthHelper:
         password: str = "password123"
     ) -> Dict[str, Any]:
         """
-        Loguje użytkownika.
+        Logs in a user.
         
         Returns:
-            Dict z kluczami: response, status_code, has_cookie
+            Dict with keys: response, status_code, has_cookie
         """
         payload = {
             "email": email,
@@ -79,10 +71,10 @@ class AuthHelper:
         password: str = "password123"
     ) -> Dict[str, Any]:
         """
-        Rejestruje i od razu loguje użytkownika (typowy flow).
+        Registers and immediately logs in a user (typical flow).
         
         Returns:
-            Dict z danymi rejestracji i logowania
+            Dict with registration and login data
         """
         register_result = AuthHelper.register_user(client, email, name, password)
         if register_result["status_code"] != 200:
@@ -99,7 +91,7 @@ class AuthHelper:
     
     @staticmethod
     def logout_user(client: TestClient) -> Dict[str, Any]:
-        """Wylogowuje użytkownika."""
+        """Logs out a user."""
         response = client.post(f"{AuthHelper.BASE_URL}/logout")
         return {
             "response": response,
@@ -109,7 +101,7 @@ class AuthHelper:
     
     @staticmethod
     def get_current_mechanic(client: TestClient) -> Dict[str, Any]:
-        """Pobiera dane zalogowanego mechanika."""
+        """Gets data of the logged in mechanic."""
         response = client.get(f"{AuthHelper.BASE_URL}/get_mechanics")
         
         result = {
@@ -125,12 +117,12 @@ class AuthHelper:
 
 def assert_error_response(response, expected_status: int, expected_detail: str):
     """
-    Pomocnik do weryfikacji odpowiedzi błędów.
+    Helper for verifying error responses.
     
     Args:
-        response: Response z TestClient
-        expected_status: Oczekiwany kod statusu
-        expected_detail: Oczekiwana treść błędu
+        response: Response from TestClient
+        expected_status: Expected status code
+        expected_detail: Expected error detail
     """
     assert response.status_code == expected_status, \
         f"Expected {expected_status}, got {response.status_code}. Body: {response.text}"
@@ -143,14 +135,14 @@ def assert_error_response(response, expected_status: int, expected_detail: str):
 
 def assert_success_response(response, expected_status: int = 200):
     """
-    Pomocnik do weryfikacji sukcesu.
+    Helper for verifying success responses.
     
     Args:
-        response: Response z TestClient
-        expected_status: Oczekiwany kod statusu (domyślnie 200)
+        response: Response from TestClient
+        expected_status: Expected status code (default 200)
     
     Returns:
-        Zdekodowany JSON z odpowiedzi
+        Decoded JSON from response
     """
     assert response.status_code == expected_status, \
         f"Expected {expected_status}, got {response.status_code}. Body: {response.text}"
@@ -159,7 +151,7 @@ def assert_success_response(response, expected_status: int = 200):
 
 
 class ClientHelper:
-    """Helper do operacji na klientach"""
+    """Helper for operations on clients"""
     
     BASE_URL = "/api/v1/clients"
     
@@ -172,10 +164,10 @@ class ClientHelper:
         pesel: str = None
     ) -> Dict[str, Any]:
         """
-        Tworzy klienta przez API.
+        Creates a client through API.
         
         Returns:
-            Dict z kluczami: response, status_code, data (jeśli sukces)
+            Dict with keys: response, status_code, data (if success)
         """
         payload = {
             "name": name,
@@ -201,7 +193,7 @@ class ClientHelper:
     
     @staticmethod
     def get_client(client: TestClient, client_id: int) -> Dict[str, Any]:
-        """Pobiera klienta po ID"""
+        """Gets a client by ID"""
         response = client.get(f"{ClientHelper.BASE_URL}/{client_id}")
         
         result = {
@@ -220,7 +212,7 @@ class ClientHelper:
         client_id: int,
         **update_fields
     ) -> Dict[str, Any]:
-        """Aktualizuje klienta"""
+        """Updates a client"""
         response = client.put(
             f"{ClientHelper.BASE_URL}/{client_id}",
             json=update_fields
@@ -238,7 +230,7 @@ class ClientHelper:
     
     @staticmethod
     def delete_client(client: TestClient, client_id: int) -> Dict[str, Any]:
-        """Usuwa klienta"""
+        """Deletes a client"""
         response = client.delete(f"{ClientHelper.BASE_URL}/{client_id}")
         
         return {
