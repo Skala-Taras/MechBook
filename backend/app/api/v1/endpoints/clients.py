@@ -19,7 +19,7 @@ def create_client(
         if "already exists" in error_msg:
             raise HTTPException(status_code=409, detail=error_msg)
         raise HTTPException(status_code=400, detail=error_msg)
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 @router.get("/{client_id}", response_model=ClientExtendedInfo)

@@ -1,4 +1,3 @@
-from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies.jwt import get_current_mechanic_id_from_cookie
 from app.schemas.repair import RepairCreate, RepairEditData, RepairExtendedInfo, RepairBasicInfo

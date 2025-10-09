@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 import logging
 
 from app.interfaces.client_repository import IClientRepository

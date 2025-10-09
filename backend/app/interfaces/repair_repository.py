@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
 
 from app.models.repairs import Repairs
-from app.schemas.repair import RepairCreate, RepairEditData
 
 class IRepairRepository(ABC):
     # Depends on get_db

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.interfaces.vehicle_service import IVehicleService

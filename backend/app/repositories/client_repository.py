@@ -1,6 +1,5 @@
-from abc import ABC, abstractmethod
 from typing import Optional
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.dependencies.db import get_db

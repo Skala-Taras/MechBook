@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
 from app.schemas.repair import RepairCreate, RepairEditData, RepairExtendedInfo, RepairBasicInfo
-from app.models.repairs import Repairs
 
 class IRepairService(ABC):
 

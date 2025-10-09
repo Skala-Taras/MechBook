@@ -1,12 +1,9 @@
-from datetime import datetime, date
 from typing import List
 from fastapi import Depends
-from sqlalchemy.orm import Session
 
 from app.interfaces.repair_repository import IRepairRepository
 from app.interfaces.repair_service import IRepairService
 from app.repositories.repair_repository import RepairRepository
-from app.dependencies.db import get_db
 from app.schemas.repair import RepairCreate, RepairEditData, RepairExtendedInfo, RepairBasicInfo
 from app.models.repairs import Repairs
 

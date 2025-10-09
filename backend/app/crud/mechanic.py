@@ -1,9 +1,5 @@
-from fastapi.params import Depends
-from sqlalchemy.dialects.postgresql.pg8000 import ServerSideCursor
 from app.core.security import hash_password
-from passlib.hash import bcrypt
 from sqlalchemy.orm import Session
-from app.dependencies.db import get_db
 from app.models.mechanics import Mechanics
 from app.schemas.mechanic import MechanicCreate
 

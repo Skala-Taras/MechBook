@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from sqlalchemy.orm import Session
 from app.models.vehicles import Vehicles
-from app.schemas.vehicle import VehicleEditData
 
 class IVehicleRepository(ABC):
     #Depends on get_db

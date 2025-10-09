@@ -62,7 +62,7 @@ class PasswordService:
             raise HTTPException(status_code=400, detail="Invalid or expired token")
         
         email = token_data["email"]
-        token_id = token_data["token_id"]
+        #token_id = token_data["token_id"]
         
         # Check if token was already used (if database tracking is available)
         db_token = None
