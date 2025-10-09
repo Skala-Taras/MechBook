@@ -469,3 +469,272 @@ class TestSearchResponseFormat:
         data = response.json()
         assert isinstance(data, list)
 
+
+# ============================================================================
+# VEHICLE WITH CLIENT INFO TESTS
+# ============================================================================
+
+@pytest.mark.api
+@pytest.mark.integration
+class TestVehicleSearchWithClientInfo:
+    """Tests for vehicle search results that include client information"""
+    
+    @patch('app.api.v1.endpoints.search.search_service.search')
+    def test_vehicle_search_returns_client_info(self, mock_search, client: TestClient):
+        """Vehicle search result includes client_id, client_name, and client_last_name"""
+        # Arrange
+        mock_results = create_mock_search_results([
+            {
+                "id": 1, 
+                "type": "vehicle", 
+                "name": "BMW X1",
+                "mark": "BMW",
+                "model": "X1",
+                "vin": "WBAVB13506PT12345",
+                "client_id": 101,
+                "client_name": "Taras",
+                "client_last_name": "Skala"
+            }
+        ])
+        mock_search.return_value = mock_results
+        
+        # Act
+        response = client.get("/api/v1/search?q=BMW")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        
+        vehicle = data[0]
+        assert vehicle["type"] == "vehicle"
+        assert vehicle["id"] == 1
+        assert vehicle["client_id"] == 101
+        assert vehicle["client_name"] == "Taras"
+        assert vehicle["client_last_name"] == "Skala"
+    
+    @patch('app.api.v1.endpoints.search.search_service.search')
+    def test_search_vehicle_by_client_name(self, mock_search, client: TestClient):
+        """Search for vehicle by client's first name"""
+        # Arrange - BMW X1 owned by Taras Skala
+        mock_results = create_mock_search_results([
+            {
+                "id": 1, 
+                "type": "vehicle", 
+                "name": "BMW X1",
+                "mark": "BMW",
+                "model": "X1",
+                "client_id": 101,
+                "client_name": "Taras",
+                "client_last_name": "Skala"
+            }
+        ])
+        mock_search.return_value = mock_results
+        
+        # Act - search by client name "Taras"
+        response = client.get("/api/v1/search?q=Taras")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["type"] == "vehicle"
+        assert data[0]["client_name"] == "Taras"
+    
+    @patch('app.api.v1.endpoints.search.search_service.search')
+    def test_search_vehicle_by_client_last_name(self, mock_search, client: TestClient):
+        """Search for vehicle by client's last name"""
+        # Arrange
+        mock_results = create_mock_search_results([
+            {
+                "id": 1, 
+                "type": "vehicle", 
+                "name": "BMW X1",
+                "mark": "BMW",
+                "model": "X1",
+                "client_id": 101,
+                "client_name": "Taras",
+                "client_last_name": "Skala"
+            }
+        ])
+        mock_search.return_value = mock_results
+        
+        # Act - search by last name "Skala"
+        response = client.get("/api/v1/search?q=Skala")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["type"] == "vehicle"
+        assert data[0]["client_last_name"] == "Skala"
+    
+    @patch('app.api.v1.endpoints.search.search_service.search')
+    def test_search_vehicle_by_model_and_client_name(self, mock_search, client: TestClient):
+        """Search for vehicle by combining model and client name (e.g., 'BMW Taras')"""
+        # Arrange - BMW X1 owned by Taras Skala
+        mock_results = create_mock_search_results([
+            {
+                "id": 1, 
+                "type": "vehicle", 
+                "name": "BMW X1",
+                "mark": "BMW",
+                "model": "X1",
+                "client_id": 101,
+                "client_name": "Taras",
+                "client_last_name": "Skala"
+            }
+        ])
+        mock_search.return_value = mock_results
+        
+        # Act - search "BMW Taras"
+        response = client.get("/api/v1/search?q=BMW Taras")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["type"] == "vehicle"
+        assert data[0]["mark"] == "BMW"
+        assert data[0]["client_name"] == "Taras"
+    
+    @patch('app.api.v1.endpoints.search.search_service.search')
+    def test_search_distinguishes_same_car_different_owners(self, mock_search, client: TestClient):
+        """Search distinguishes same vehicle model with different owners
+        
+        Scenario: Two BMW X1 cars owned by different clients
+        - Taras Skala owns BMW X1
+        - Vasia Pupkin owns BMW X1
+        
+        When searching 'BMW Taras', should return only Taras's BMW
+        """
+        # Arrange - Only Taras's BMW should be returned
+        mock_results = create_mock_search_results([
+            {
+                "id": 1, 
+                "type": "vehicle", 
+                "name": "BMW X1",
+                "mark": "BMW",
+                "model": "X1",
+                "client_id": 101,
+                "client_name": "Taras",
+                "client_last_name": "Skala"
+            }
+        ])
+        mock_search.return_value = mock_results
+        
+        # Act - search "BMW Taras"
+        response = client.get("/api/v1/search?q=BMW Taras")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        
+        vehicle = data[0]
+        assert vehicle["type"] == "vehicle"
+        assert vehicle["mark"] == "BMW"
+        assert vehicle["client_name"] == "Taras"
+        assert vehicle["client_last_name"] == "Skala"
+        # Should NOT return Vasia's car
+        assert vehicle["client_name"] != "Vasia"
+    
+    @patch('app.api.v1.endpoints.search.search_service.search')
+    def test_search_multiple_vehicles_same_owner(self, mock_search, client: TestClient):
+        """Search returns all vehicles for a specific owner"""
+        # Arrange - Taras owns both BMW X1 and Mercedes C-Class
+        mock_results = create_mock_search_results([
+            {
+                "id": 1, 
+                "type": "vehicle", 
+                "name": "BMW X1",
+                "mark": "BMW",
+                "model": "X1",
+                "client_id": 101,
+                "client_name": "Taras",
+                "client_last_name": "Skala"
+            },
+            {
+                "id": 2, 
+                "type": "vehicle", 
+                "name": "Mercedes C-Class",
+                "mark": "Mercedes",
+                "model": "C-Class",
+                "client_id": 101,
+                "client_name": "Taras",
+                "client_last_name": "Skala"
+            }
+        ])
+        mock_search.return_value = mock_results
+        
+        # Act - search by owner name
+        response = client.get("/api/v1/search?q=Taras Skala")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        
+        # Both vehicles should belong to Taras
+        for vehicle in data:
+            assert vehicle["type"] == "vehicle"
+            assert vehicle["client_name"] == "Taras"
+            assert vehicle["client_last_name"] == "Skala"
+            assert vehicle["client_id"] == 101
+        
+        # Verify we have both cars
+        marks = [v["mark"] for v in data]
+        assert "BMW" in marks
+        assert "Mercedes" in marks
+    
+    @patch('app.api.v1.endpoints.search.search_service.search')
+    def test_vehicle_result_all_fields_present(self, mock_search, client: TestClient):
+        """Verify all expected fields are present in vehicle search result"""
+        # Arrange
+        mock_results = create_mock_search_results([
+            {
+                "id": 1, 
+                "type": "vehicle", 
+                "name": "Audi A4",
+                "mark": "Audi",
+                "model": "A4",
+                "vin": "WAUZZZ8E75A012345",
+                "client_id": 202,
+                "client_name": "Jan",
+                "client_last_name": "Kowalski"
+            }
+        ])
+        mock_search.return_value = mock_results
+        
+        # Act
+        response = client.get("/api/v1/search?q=Audi")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        
+        vehicle = data[0]
+        # Required fields
+        assert "id" in vehicle
+        assert "type" in vehicle
+        assert vehicle["type"] == "vehicle"
+        
+        # Vehicle-specific fields
+        assert "name" in vehicle
+        assert "mark" in vehicle
+        assert "model" in vehicle
+        assert "vin" in vehicle
+        
+        # Client information fields
+        assert "client_id" in vehicle
+        assert "client_name" in vehicle
+        assert "client_last_name" in vehicle
+        
+        # Verify values
+        assert vehicle["id"] == 1
+        assert vehicle["mark"] == "Audi"
+        assert vehicle["model"] == "A4"
+        assert vehicle["client_id"] == 202
+        assert vehicle["client_name"] == "Jan"
+        assert vehicle["client_last_name"] == "Kowalski"

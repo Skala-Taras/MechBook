@@ -52,3 +52,6 @@ psycopg2-binary
 fastapi-mail
 pytest
 pytest-mock
+ruff==0.7.2
+pytest-cov==6.0.0
+

@@ -61,7 +61,26 @@ class SearchService:
                     "phone": {"type": "keyword"},
                     "vin": {"type": "keyword"},
                     "client_id": {"type": "integer"},
-                    "client_name": {"type": "text"} 
+                    "client_name": {
+                        "type": "text",
+                        "fields": {
+                            "autocomplete": {
+                                "type": "text",
+                                "analyzer": "autocomplete_analyzer",
+                                "search_analyzer": "standard"
+                            }
+                        }
+                    },
+                    "client_last_name": {
+                        "type": "text",
+                        "fields": {
+                            "autocomplete": {
+                                "type": "text",
+                                "analyzer": "autocomplete_analyzer",
+                                "search_analyzer": "standard"
+                            }
+                        }
+                    }
                 }
             }
             es_client.indices.create(
@@ -93,7 +112,8 @@ class SearchService:
             name=f"{vehicle.mark} {vehicle.model}",
             vin=vehicle.vin,
             client_id=vehicle.client_id,
-            client_name=f"{vehicle.client.name} {vehicle.client.last_name}"
+            client_name=vehicle.client.name,
+            client_last_name=vehicle.client.last_name
         )
         es_client.index(
             index=self.INDEX_NAME,
@@ -115,12 +135,15 @@ class SearchService:
                         "multi_match": {
                             "query": query,
                             "fields": [
-                                "name",
-                                "name.autocomplete",
+                                "name^2",
+                                "name.autocomplete^1.5",
                                 "name.no_whitespace",
                                 "phone",
                                 "vin",
-                                "client_name"
+                                "client_name^1.8",
+                                "client_name.autocomplete^1.5",
+                                "client_last_name^1.8",
+                                "client_last_name.autocomplete^1.5"
                             ],
                             "fuzziness": "AUTO",
                             "type": "best_fields",

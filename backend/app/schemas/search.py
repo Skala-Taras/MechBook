@@ -13,6 +13,11 @@ class ElasticSearchEntry(BaseModel):
     mark: Optional[str] = None
     model: Optional[str] = None
     
+    # Client info for vehicles
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None
+    client_last_name: Optional[str] = None
+    
     class Config:
         from_attributes = True
 
@@ -22,10 +27,17 @@ class SearchResult(BaseModel):
 
     # For clients: "First Last"
     name: Optional[str] = None
+    phone: Optional[str] = None
 
     # For vehicles: "Mark Model"
     mark: Optional[str] = None
     model: Optional[str] = None
+    vin: Optional[str] = None
+    
+    # Client info for vehicles
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None
+    client_last_name: Optional[str] = None
     
     class Config:
         from_attributes = True

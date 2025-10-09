@@ -5,6 +5,8 @@ from app.db.base import Base
 from app.db.session import engine
 from app.services.search_engine_service import search_service
 
+import app.models  # noqa
+
 app = FastAPI()
 app.include_router(api_router, prefix="/api/v1")
 
