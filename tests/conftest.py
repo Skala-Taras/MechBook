@@ -36,6 +36,7 @@ os.chdir(str(BACKEND_DIR))
 sys.modules['app.services.search_engine_service'] = MagicMock()
 
 from app.db.base import Base
+import app.models  # noqa: F401
 from app.dependencies.db import get_db
 
 TEST_DB_PATH = BACKEND_DIR / "test.db"
