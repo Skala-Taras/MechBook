@@ -30,6 +30,22 @@ def create_mock_search_results(results_data):
 
 
 # ============================================================================
+# AUTH FIXTURE (autouse)
+# ============================================================================
+
+@pytest.fixture(autouse=True)
+def _auth_search_requests(client: TestClient):
+    """Automatically authenticate before each test in this module."""
+    mechanic_data = MechanicFactory.build()
+    AuthHelper.register_and_login(
+        client,
+        email=mechanic_data["email"],
+        name=mechanic_data["name"],
+        password=mechanic_data["password"],
+    )
+
+
+# ============================================================================
 # SEARCH ENDPOINT TESTS
 # ============================================================================
 
