@@ -36,35 +36,35 @@ jobs:
       - name: Build Docker image
         run: docker build -t mechbook-backend ./backend
 
-  # # CD jobs
-  # cd:
-  #   needs: ci
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Start ssh-agent and add private key
-  #       uses: webfactory/ssh-agent@v0.9.0
-  #       with:
-  #         ssh-private-key: |
-  #           ${{ secrets.SERVER_ACCESS }}
+  # CD jobs
+  cd:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start ssh-agent and add private key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.SERVER_ACCESS }}
 
-  #     - name: Add server to known_hosts
-  #       run: |
-  #         mkdir -p ~/.ssh
-  #         ssh-keyscan -H ${{ secrets.SERVER_IP_ADDRES }} >> ~/.ssh/known_hosts
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP_ADDRES }} >> ~/.ssh/known_hosts
 
-  #     - name: Deploy via SSH and restart services
-  #       env:
-  #         SSH_HOST: ${{ secrets.SERVER_IP_ADDRES }}
-  #         SSH_USER: ${{ secrets.SERVER_USER_NAME }}
-  #         SSH_PORT: ${{ secrets.SERVER_PORT }}
-  #         DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-  #       run: |
-  #       ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" << EOF
-  #         cd "${DEPLOY_PATH}" && (
-  #           docker compose down;
-  #           git fetch --all;
-  #           git reset --hard origin/master;
-  #           docker compose up -d --build;
-  #           echo "Deployment ended successfully."
-  #         )
-  #       EOF
+      - name: Deploy via SSH and restart services
+        env:
+          SSH_HOST: ${{ secrets.SERVER_IP_ADDRES }}
+          SSH_USER: ${{ secrets.SERVER_USER_NAME }}
+          SSH_PORT: ${{ secrets.SERVER_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: | 
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" << EOF
+          cd "${DEPLOY_PATH}" && (
+            docker compose down;
+            git fetch --all;
+            git reset --hard origin/master;
+            docker compose up -d --build;
+            echo "Deployment ended successfully."
+          )
+          EOF
