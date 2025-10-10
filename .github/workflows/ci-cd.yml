@@ -56,7 +56,7 @@ jobs:
 
       - name: Deploy via SSH and restart services
         env:
-          SSH_HOST: ${{ secrets.SERVER_ACCESS }}
+          SSH_HOST: ${{ secrets.SERVER_IP_ADDRESS }}
           SSH_USER: ${{ secrets.SERVER_USER_NAME }}
           SSH_PORT: ${{ secrets.SERVER_PORT }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
