@@ -14,9 +14,9 @@ def create_repair_for_vehicle(
         service: IRepairService = Depends(RepairService)
         ):
     try:
-        return service.log_new_repair_for_vehicle(vehicle_id, repair_data)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Repair not found")
+        return service.log_new_repair_for_vehicle(vehicle_id, repair_data, mechanic_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.get("/", response_model=list[RepairBasicInfo])
 def get_all_repairs_for_vehicle(
@@ -27,7 +27,7 @@ def get_all_repairs_for_vehicle(
         service: IRepairService = Depends(RepairService)
         ):
     return service.list_repairs_for_vehicle(
-        vehicle_id=vehicle_id, page=page, size=size
+        vehicle_id=vehicle_id, page=page, size=size, mechanic_id=mechanic_id
     )
 
 @router.patch("/{repair_id}", status_code=204)
@@ -39,7 +39,7 @@ def update_repair_details(
         service: IRepairService = Depends(RepairService)
         ):
     try:
-        service.update_repair_information(repair_id, repair_data)
+        service.update_repair_information(repair_id, repair_data, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Repair not found")
 
@@ -51,7 +51,7 @@ def get_repair_details(
         service: IRepairService = Depends(RepairService)
         ):
     try:
-        return service.get_repair_details(repair_id)
+        return service.get_repair_details(repair_id, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Repair not found")
 
@@ -63,6 +63,6 @@ def delete_repair_by_id(
         service: IRepairService = Depends(RepairService)
         ):
     try:
-        service.delete_repair(repair_id)
+        service.delete_repair(repair_id, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Repair not found")

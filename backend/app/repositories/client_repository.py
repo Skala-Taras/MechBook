@@ -27,11 +27,14 @@ class ClientRepository(IClientRepository):
         self.db.refresh(new_client)
         return new_client
 
-    def get_client_by_id(self, client_id: int) -> Optional[Clients]:
-        return self.db.query(Clients).filter(Clients.id == client_id).first()
+    def get_client_by_id(self, client_id: int, mechanic_id: int = None) -> Optional[Clients]:
+        query = self.db.query(Clients).filter(Clients.id == client_id)
+        if mechanic_id is not None:
+            query = query.filter(Clients.mechanic_id == mechanic_id)
+        return query.first()
 
-    def update_client(self, client_id: int, client_data: ClientUpdate) -> Optional[Clients]:
-        client = self.get_client_by_id(client_id)
+    def update_client(self, client_id: int, client_data: ClientUpdate, mechanic_id: int) -> Optional[Clients]:
+        client = self.get_client_by_id(client_id, mechanic_id)
         if not client:
             return None
         
@@ -50,35 +53,53 @@ class ClientRepository(IClientRepository):
         self.db.refresh(client)
         return client
 
-    def delete_client(self, client_id: int) -> bool:
-        # Delete all vehicles for this client and then delete the client
-        from app.repositories.vehicle_repository import VehicleRepository
-        vehicle_repo = VehicleRepository(self.db)
-        vehicle_repo.delete_vehicle(client_id)
-  
+    def delete_client(self, client_id: int, mechanic_id: int) -> bool:
+        # With cascade="all, delete-orphan" in the model, deleting the client
+        # will automatically delete all associated vehicles and their repairs
+        client = self.get_client_by_id(client_id, mechanic_id)
+        if not client:
+            return False
+        
         deleted_count = self.db.query(Clients).filter(Clients.id == client_id).delete(synchronize_session=False)
         self.db.commit()
         return deleted_count > 0
 
-    def get_client_by_name_and_last_name(self, name: str, last_name: str) -> Optional[Clients]:
+    def get_client_by_name_and_last_name(self, name: str, last_name: str, mechanic_id: int = None) -> Optional[Clients]:
         # Case-insensitive search for duplicate checking
-        return self.db.query(Clients).filter(
+        query = self.db.query(Clients).filter(
             Clients.name.ilike(name.strip()), 
             Clients.last_name.ilike(last_name.strip())
-        ).first()
+        )
+        if mechanic_id is not None:
+            query = query.filter(Clients.mechanic_id == mechanic_id)
+        return query.first()
 
-    def get_client_by_phone(self, phone: str) -> Optional[Clients]:
+    def get_client_by_phone(self, phone: str, mechanic_id: int = None) -> Optional[Clients]:
         if not phone:
             return None
-        return self.db.query(Clients).filter(Clients.phone == phone).first()
+        query = self.db.query(Clients).filter(Clients.phone == phone)
+        if mechanic_id is not None:
+            query = query.filter(Clients.mechanic_id == mechanic_id)
+        return query.first()
 
-    def get_client_by_pesel(self, pesel: str) -> Optional[Clients]:
+    def get_client_by_pesel(self, pesel: str, mechanic_id: int = None) -> Optional[Clients]:
         if not pesel:
             return None
-        return self.db.query(Clients).filter(Clients.pesel == pesel).first()
+        query = self.db.query(Clients).filter(Clients.pesel == pesel)
+        if mechanic_id is not None:
+            query = query.filter(Clients.mechanic_id == mechanic_id)
+        return query.first()
     
-    def get_all_clients(self) -> list[Clients]:
-        return self.db.query(Clients).all()
+    def get_all_clients(self, mechanic_id: int = None) -> list[Clients]:
+        query = self.db.query(Clients)
+        if mechanic_id is not None:
+            query = query.filter(Clients.mechanic_id == mechanic_id)
+        return query.all()
     
-    def get_client_vehicles(self, client_id: int, page: int, size: int) -> list[Vehicles]:
+    def get_client_vehicles(self, client_id: int, page: int, size: int, mechanic_id: int = None) -> list[Vehicles]:
+        # First verify the client belongs to this mechanic
+        if mechanic_id is not None:
+            client = self.get_client_by_id(client_id, mechanic_id)
+            if not client:
+                return []
         return self.db.query(Vehicles).filter(Vehicles.client_id == client_id).offset((page - 1) * size).limit(size).all()

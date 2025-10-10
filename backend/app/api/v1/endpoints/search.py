@@ -16,6 +16,7 @@ def perform_search(
     Performs a unified search across clients and vehicles.
     - Fuzzy matching is enabled for typo tolerance.
     - Searches across client names, phone numbers, vehicle makes, models, and VINs.
+    - Results are filtered by mechanic_id for multi-tenancy.
     """
-    results = search_service.search(q)
+    results = search_service.search(q, mechanic_id)
     return results

@@ -28,7 +28,7 @@ def edit_vehicle_data(
         service: IVehicleService = Depends(VehicleService)
         ):
     try:
-        return service.update_vehicle_information(vehicle_id, data)
+        return service.update_vehicle_information(vehicle_id, data, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
@@ -39,7 +39,7 @@ def recently_used(
         mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
         service: IVehicleService = Depends(VehicleService)
         ):
-    return service.list_recently_viewed_vehicles(page, size)
+    return service.list_recently_viewed_vehicles(page, size, mechanic_id)
 
 @router.get("/{vehicle_id}", response_model=VehicleExtendedInfo)
 def detail(
@@ -48,7 +48,7 @@ def detail(
         service: IVehicleService = Depends(VehicleService)
         ):
     try:
-        return service.get_vehicle_details(vehicle_id)
+        return service.get_vehicle_details(vehicle_id, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
@@ -59,7 +59,7 @@ def delete_vehicle(
         service: IVehicleService = Depends(VehicleService)
         ):
     try:
-        service.delete_vehicle(vehicle_id)
+        service.delete_vehicle(vehicle_id, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Vehicle not found")
 

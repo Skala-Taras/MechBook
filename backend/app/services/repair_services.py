@@ -18,15 +18,22 @@ class RepairService(IRepairService):
         if not repair:
             raise ValueError("Repair not found")
 
-    def log_new_repair_for_vehicle(self, vehicle_id: int, data: RepairCreate) -> RepairExtendedInfo:
+    def log_new_repair_for_vehicle(self, vehicle_id: int, data: RepairCreate, mechanic_id: int) -> RepairExtendedInfo:
+        # Verify the vehicle belongs to this mechanic by checking if we can get it
+        from app.repositories.vehicle_repository import VehicleRepository
+        vehicle_repo = VehicleRepository(self.repair_repo.db)
+        vehicle = vehicle_repo.get_vehicle_by_id(vehicle_id, mechanic_id)
+        if not vehicle:
+            raise ValueError("Vehicle not found or does not belong to this mechanic")
+        
         repair_data_with_vehicle = data.dict()
         repair_data_with_vehicle['vehicle_id'] = vehicle_id
         
         new_repair = self.repair_repo.create_repair(repair_data_with_vehicle)
         return RepairExtendedInfo.model_validate(new_repair)
 
-    def get_repair_details(self, repair_id: int) -> RepairExtendedInfo:
-        repair = self.repair_repo.get_repair_by_id(repair_id)
+    def get_repair_details(self, repair_id: int, mechanic_id: int) -> RepairExtendedInfo:
+        repair = self.repair_repo.get_repair_by_id(repair_id, mechanic_id)
         self.__validate_correct_result(repair)
         self.repair_repo.update_last_seen_column_in_repair(repair)
         return RepairExtendedInfo.model_validate(repair)
@@ -35,18 +42,19 @@ class RepairService(IRepairService):
         self,
         vehicle_id: int,
         page: int,
-        size: int,        
+        size: int,
+        mechanic_id: int,
     ) -> List[RepairBasicInfo]:
-        repairs = self.repair_repo.find_repairs_for_vehicle(vehicle_id, page, size)
+        repairs = self.repair_repo.find_repairs_for_vehicle(vehicle_id, page, size, mechanic_id)
         return [RepairBasicInfo.model_validate(r) for r in repairs]
 
-    def update_repair_information(self, repair_id: int, data: RepairEditData):
-        updated_repair = self.repair_repo.update_repair(repair_id, data.dict(exclude_unset=True))
+    def update_repair_information(self, repair_id: int, data: RepairEditData, mechanic_id: int):
+        updated_repair = self.repair_repo.update_repair(repair_id, data.dict(exclude_unset=True), mechanic_id)
         # Give repository only data that needed fild without None key
         self.__validate_correct_result(updated_repair)
         self.repair_repo.update_last_seen_column_in_repair(updated_repair)
 
-    def delete_repair(self, repair_id: int):
-        was_deleted = self.repair_repo.delete_repair(repair_id)
+    def delete_repair(self, repair_id: int, mechanic_id: int):
+        was_deleted = self.repair_repo.delete_repair(repair_id, mechanic_id)
         self.__validate_correct_result(was_deleted)
 

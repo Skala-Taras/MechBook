@@ -911,3 +911,206 @@ class TestClientEdgeCases:
         assert len(created_ids) == 10
         assert len(set(created_ids)) == 10  
 
+
+# ============================================================================
+# TESTS FOR MECHANIC ISOLATION (MULTI-TENANCY)
+# ============================================================================
+
+@pytest.mark.api
+@pytest.mark.integration
+class TestMechanicIsolation:
+    """Tests for mechanic isolation - each mechanic can only see their own clients"""
+    
+    def test_mechanic_cannot_see_other_mechanic_client(self, client: TestClient):
+        """Test that mechanic cannot see another mechanic's client"""
+        # Arrange
+        mechanic_a = AuthHelper.register_and_login(
+            client, 
+            email="mechanic_a@example.com",
+            name="Mechanic A",
+            password="password123"
+        )
+        client_a_response = create_test_client(client, name="Client", last_name="A", phone="111111111")
+        client_a_id = client_a_response.json()["id"]
+        
+        # Logout and create second mechanic with their client
+        client.post("/api/v1/auth/logout")
+        mechanic_b = AuthHelper.register_and_login(
+            client,
+            email="mechanic_b@example.com",
+            name="Mechanic B",
+            password="password456"
+        )
+        
+        # Act
+        response = client.get(f"{BASE_URL}/{client_a_id}")
+        
+        # Assert
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Client not found"
+    
+    def test_mechanic_cannot_update_other_mechanic_client(self, client: TestClient):
+        """Test that mechanic cannot update another mechanic's client"""
+        # Arrange
+        mechanic_a = AuthHelper.register_and_login(
+            client, 
+            email="mechanic_a@example.com",
+            name="Mechanic A",
+            password="password123"
+        )
+        client_a_response = create_test_client(client, name="Client", last_name="A")
+        client_a_id = client_a_response.json()["id"]
+        
+        # Logout and login as different mechanic
+        client.post("/api/v1/auth/logout")
+        AuthHelper.register_and_login(
+            client,
+            email="mechanic_b@example.com",
+            name="Mechanic B",
+            password="password456"
+        )
+        
+        # Act
+        response = client.put(f"{BASE_URL}/{client_a_id}", json={
+            "name": "Hacked Name"
+        })
+        
+        # Assert
+        assert response.status_code == 404
+    
+    def test_mechanic_cannot_delete_other_mechanic_client(self, client: TestClient):
+        """Test that mechanic cannot delete another mechanic's client"""
+        # Arrange
+        AuthHelper.register_and_login(
+            client, 
+            email="mechanic_a@example.com",
+            name="Mechanic A",
+            password="password123"
+        )
+        client_a_response = create_test_client(client, name="Client", last_name="A")
+        client_a_id = client_a_response.json()["id"]
+        
+        # Logout and login as different mechanic
+        client.post("/api/v1/auth/logout")
+        AuthHelper.register_and_login(
+            client,
+            email="mechanic_b@example.com",
+            name="Mechanic B",
+            password="password456"
+        )
+        
+        # Act
+        response = client.delete(f"{BASE_URL}/{client_a_id}")
+        
+        # Assert
+        assert response.status_code == 404
+        
+        # Verify the client still exists for mechanic A
+        client.post("/api/v1/auth/logout")
+        AuthHelper.login(client, "mechanic_a@example.com", "password123")
+        get_response = client.get(f"{BASE_URL}/{client_a_id}")
+        assert get_response.status_code == 200
+    
+    def test_mechanic_can_have_duplicate_client_names_across_mechanics(self, client: TestClient):
+        """
+        Test that two different mechanics can have clients with the same name.
+        Duplicate checking should be scoped to mechanic_id.
+        """
+        # Arrange - Create first mechanic and client
+        AuthHelper.register_and_login(
+            client, 
+            email="mechanic_a@example.com",
+            name="Mechanic A",
+            password="password123"
+        )
+        response1 = create_test_client(client, name="Jan", last_name="Kowalski", phone="111111111")
+        assert response1.status_code == 201
+        
+        # Logout and create second mechanic
+        client.post("/api/v1/auth/logout")
+        AuthHelper.register_and_login(
+            client,
+            email="mechanic_b@example.com",
+            name="Mechanic B",
+            password="password456"
+        )
+        
+        # Act - Create client with same name but different mechanic
+        response2 = create_test_client(client, name="Jan", last_name="Kowalski", phone="222222222")
+        
+        # Assert
+        assert response2.status_code == 201
+        assert response2.json()["name"] == "Jan"
+        assert response2.json()["last_name"] == "Kowalski"
+    
+    def test_mechanic_can_have_duplicate_phone_across_mechanics(self, client: TestClient):
+        """
+        Test that two different mechanics can have clients with the same phone.
+        Phone uniqueness should be scoped to mechanic_id.
+        """
+        # Arrange
+        AuthHelper.register_and_login(
+            client, 
+            email="mechanic_a@example.com",
+            name="Mechanic A",
+            password="password123"
+        )
+        response1 = create_test_client(client, name="Jan", last_name="Kowalski", phone="123456789")
+        assert response1.status_code == 201
+        
+        # Logout and create second mechanic
+        client.post("/api/v1/auth/logout")
+        AuthHelper.register_and_login(
+            client,
+            email="mechanic_b@example.com",
+            name="Mechanic B",
+            password="password456"
+        )
+        
+        # Act - Create client with same phone but different mechanic
+        response2 = create_test_client(client, name="Anna", last_name="Nowak", phone="123456789")
+        
+        # Assert
+        assert response2.status_code == 201
+    
+    def test_deleting_client_with_vehicles_and_repairs(self, client: TestClient):
+        """
+        Test cascade deletion: deleting a client should also delete their vehicles and repairs
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        client_resp = create_test_client(client, name="Owner", last_name="ToDelete")
+        client_id = client_resp.json()["id"]
+        
+        # Create a vehicle for this client
+        vehicle_resp = client.post("/api/v1/vehicles", json={
+            "mark": "Toyota",
+            "model": "Corolla",
+            "vin": "VIN12345678901XYZ",  # 17 characters exactly
+            "client_id": client_id
+        })
+        assert vehicle_resp.status_code == 201
+        vehicle_id = vehicle_resp.json()["vehicle_id"]
+        
+        # Create a repair for this vehicle
+        repair_resp = client.post(f"/api/v1/vehicles/{vehicle_id}/repairs", json={
+            "name": "Oil change",
+            "repair_description": "Changed oil",
+            "price": 100.0,
+            "repair_date": "2024-01-01T10:00:00"
+        })
+        assert repair_resp.status_code == 201
+        
+        # Act - Delete the client (should cascade delete vehicle and repair)
+        delete_response = client.delete(f"{BASE_URL}/{client_id}")
+        
+        # Assert
+        assert delete_response.status_code == 204
+        
+        # Verify client is deleted
+        get_client = client.get(f"{BASE_URL}/{client_id}")
+        assert get_client.status_code == 404
+        
+        # Verify vehicle is deleted
+        get_vehicle = client.get(f"/api/v1/vehicles/{vehicle_id}")
+        assert get_vehicle.status_code == 404

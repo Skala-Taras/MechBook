@@ -15,17 +15,17 @@ class IRepairRepository(ABC):
         pass
 
     @abstractmethod
-    def get_repair_by_id(self, repair_id: int) -> Optional[Repairs]:
+    def get_repair_by_id(self, repair_id: int, mechanic_id: int = None) -> Optional[Repairs]:
         pass
 
     @abstractmethod
-    def find_repairs_for_vehicle(self, vehicle_id: int, page: int, size: int) -> Optional[List[Repairs]]:
+    def find_repairs_for_vehicle(self, vehicle_id: int, page: int, size: int, mechanic_id: int = None) -> Optional[List[Repairs]]:
         pass
 
     @abstractmethod
-    def update_repair(self, repair_id: int, data: dict) -> Optional[Repairs]:
+    def update_repair(self, repair_id: int, data: dict, mechanic_id: int = None) -> Optional[Repairs]:
         pass
 
     @abstractmethod
-    def delete_repair(self, repair_id: int) -> bool:
+    def delete_repair(self, repair_id: int, mechanic_id: int = None) -> bool:
         pass

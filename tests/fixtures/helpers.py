@@ -64,6 +64,15 @@ class AuthHelper:
         }
     
     @staticmethod
+    def login(
+        client: TestClient,
+        email: str = "test@example.com",
+        password: str = "password123"
+    ) -> Dict[str, Any]:
+        """Alias for login_user for backward compatibility"""
+        return AuthHelper.login_user(client, email, password)
+    
+    @staticmethod
     def register_and_login(
         client: TestClient,
         email: str = "test@example.com",

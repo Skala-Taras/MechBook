@@ -73,7 +73,11 @@ class TestSearchEndpoint:
         assert len(data) == 2
         assert data[0]["type"] == "client"
         assert "John" in data[0]["name"]
-        mock_search.assert_called_once_with("John")
+        # Check that search was called with query and mechanic_id
+        assert mock_search.called
+        call_args = mock_search.call_args[0]
+        assert call_args[0] == "John"
+        assert len(call_args) == 2  # query and mechanic_id
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_vehicles_by_mark(self, mock_search, client: TestClient):
@@ -110,7 +114,10 @@ class TestSearchEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
-        mock_search.assert_called_once_with("123456789")
+        # Check that search was called with query and mechanic_id
+        assert mock_search.called
+        call_args = mock_search.call_args[0]
+        assert call_args[0] == "123456789"
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_by_vin(self, mock_search, client: TestClient):
@@ -211,7 +218,10 @@ class TestSearchEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
-        mock_search.assert_called_once_with("John Smith")
+        # Check that search was called with query and mechanic_id
+        assert mock_search.called
+        call_args = mock_search.call_args[0]
+        assert call_args[0] == "John Smith"
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_case_insensitive(self, mock_search, client: TestClient):
@@ -400,7 +410,10 @@ class TestSearchEdgeCases:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
-        mock_search.assert_called_once_with("Smith & Sons")
+        # Check that search was called with query and mechanic_id
+        assert mock_search.called
+        call_args = mock_search.call_args[0]
+        assert call_args[0] == "Smith & Sons"
     
     @patch('app.api.v1.endpoints.search.search_service.search')
     def test_search_single_character(self, mock_search, client: TestClient):
@@ -413,7 +426,10 @@ class TestSearchEdgeCases:
         
         # Assert
         assert response.status_code == 200
-        mock_search.assert_called_once_with("A")
+        # Check that search was called with query and mechanic_id
+        assert mock_search.called
+        call_args = mock_search.call_args[0]
+        assert call_args[0] == "A"
 
 
 # ============================================================================

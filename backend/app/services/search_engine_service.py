@@ -44,6 +44,7 @@ class SearchService:
             mappings = {
                 "properties": {
                     "type": {"type": "keyword"},
+                    "mechanic_id": {"type": "integer"},
                     "name": {
                         "type": "text",
                         "fields": {
@@ -92,6 +93,7 @@ class SearchService:
         doc = ElasticSearchEntry(
             id=client.id,
             type="client",
+            mechanic_id=client.mechanic_id,
             name=f"{client.name} {client.last_name}",
             phone=client.phone,
         )
@@ -109,6 +111,7 @@ class SearchService:
         doc = ElasticSearchEntry(
             id=vehicle.id,
             type="vehicle",
+            mechanic_id=vehicle.client.mechanic_id,
             name=f"{vehicle.mark} {vehicle.model}",
             vin=vehicle.vin,
             client_id=vehicle.client_id,
@@ -124,39 +127,50 @@ class SearchService:
     def delete_document(self, doc_id: str):
         es_client.delete(index=self.INDEX_NAME, id=doc_id, ignore=[404])
 
-    def search(self, query: str) -> list[SearchResult]:
+    def search(self, query: str, mechanic_id: int) -> list[SearchResult]:
         if not query:
             return []
 
         search_body = {
             "query": {
-                "function_score": {
-                    "query": {
-                        "multi_match": {
-                            "query": query,
-                            "fields": [
-                                "name^2",
-                                "name.autocomplete^1.5",
-                                "name.no_whitespace",
-                                "phone",
-                                "vin",
-                                "client_name^1.8",
-                                "client_name.autocomplete^1.5",
-                                "client_last_name^1.8",
-                                "client_last_name.autocomplete^1.5"
-                            ],
-                            "fuzziness": "AUTO",
-                            "type": "best_fields",
-                            "operator": "and"
-                        }
-                    },
-                    "functions": [
+                "bool": {
+                    "must": [
                         {
-                            "filter": { "term": { "type": "client" } },
-                            "weight": 2
+                            "function_score": {
+                                "query": {
+                                    "multi_match": {
+                                        "query": query,
+                                        "fields": [
+                                            "name^2",
+                                            "name.autocomplete^1.5",
+                                            "name.no_whitespace",
+                                            "phone",
+                                            "vin",
+                                            "client_name^1.8",
+                                            "client_name.autocomplete^1.5",
+                                            "client_last_name^1.8",
+                                            "client_last_name.autocomplete^1.5"
+                                        ],
+                                        "fuzziness": "AUTO",
+                                        "type": "best_fields",
+                                        "operator": "and"
+                                    }
+                                },
+                                "functions": [
+                                    {
+                                        "filter": { "term": { "type": "client" } },
+                                        "weight": 2
+                                    }
+                                ],
+                                "boost_mode": "multiply"
+                            }
                         }
                     ],
-                    "boost_mode": "multiply"
+                    "filter": [
+                        {
+                            "term": { "mechanic_id": mechanic_id }
+                        }
+                    ]
                 }
             }
         }

@@ -30,7 +30,7 @@ def get_client(
     client_service: ClientService = Depends(ClientService)
 ):
     try:
-        client = client_service.get_client_details(client_id)
+        client = client_service.get_client_details(client_id, mechanic_id)
         return client
     except ValueError:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -43,7 +43,7 @@ def update_client(
     client_service: ClientService = Depends(ClientService)
 ):
     try:
-        return client_service.update_client_details(client_id, client_data)
+        return client_service.update_client_details(client_id, client_data, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Client not found")
 
@@ -54,7 +54,7 @@ def delete_client(
     client_service: ClientService = Depends(ClientService)
 ):
     try:
-        client_service.remove_client(client_id)
+        client_service.remove_client(client_id, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Client not found")
 
@@ -67,6 +67,6 @@ def get_client_vehicles(
     client_service: ClientService = Depends(ClientService)
 ):
     try:
-        return client_service.get_client_vehicles(client_id, page, size)
+        return client_service.get_client_vehicles(client_id, page, size, mechanic_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Client not found")

@@ -698,8 +698,8 @@ class TestVehicleEdgeCases:
             "client_id": 99999  
         })
         
-        # Assert 
-        assert response.status_code == 201  # TODO: Dodać walidację client_id w service!
+        assert response.status_code == 400
+        assert "Client not found" in response.json()["detail"]
     
     def test_create_vehicle_with_both_client_and_client_id(self, client: TestClient):
         """Test when both client and client_id are provided"""

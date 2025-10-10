@@ -28,20 +28,29 @@ class RepairRepository(IRepairRepository):
         self.db.refresh(repair)
         return repair
 
-    def get_repair_by_id(self, repair_id: int) -> Optional[Repairs]:
-        return self.db.query(Repairs).options(joinedload(Repairs.vehicle)).filter(Repairs.id == repair_id).first()
+    def get_repair_by_id(self, repair_id: int, mechanic_id: int = None) -> Optional[Repairs]:
+        query = self.db.query(Repairs).options(joinedload(Repairs.vehicle)).filter(Repairs.id == repair_id)
+        if mechanic_id is not None:
+            # Join through vehicle -> client to filter by mechanic_id
+            from app.models.vehicles import Vehicles
+            from app.models.clients import Clients
+            query = query.join(Vehicles).join(Clients).filter(Clients.mechanic_id == mechanic_id)
+        return query.first()
 
-    def find_repairs_for_vehicle(self, vehicle_id: int, page: int, size: int) -> List[Repairs]:
+    def find_repairs_for_vehicle(self, vehicle_id: int, page: int, size: int, mechanic_id: int = None) -> List[Repairs]:
         offset = (page - 1) * size
-        return self.db.query(Repairs)\
-            .filter(Repairs.vehicle_id == vehicle_id)\
-            .order_by(desc(Repairs.repair_date))\
-            .offset(offset)\
-            .limit(size)\
-            .all()
+        query = self.db.query(Repairs).filter(Repairs.vehicle_id == vehicle_id)
+        
+        if mechanic_id is not None:
+            # Verify the vehicle belongs to this mechanic's client
+            from app.models.vehicles import Vehicles
+            from app.models.clients import Clients
+            query = query.join(Vehicles).join(Clients).filter(Clients.mechanic_id == mechanic_id)
+        
+        return query.order_by(desc(Repairs.repair_date)).offset(offset).limit(size).all()
 
-    def update_repair(self, repair_id: int, data: dict) -> Optional[Repairs]:
-        repair = self.db.query(Repairs).filter(Repairs.id == repair_id).first()
+    def update_repair(self, repair_id: int, data: dict, mechanic_id: int = None) -> Optional[Repairs]:
+        repair = self.get_repair_by_id(repair_id, mechanic_id)
         if not repair:
             return None
         
@@ -52,7 +61,11 @@ class RepairRepository(IRepairRepository):
         self.db.refresh(repair)
         return repair
 
-    def delete_repair(self, repair_id: int) -> bool:
+    def delete_repair(self, repair_id: int, mechanic_id: int = None) -> bool:
+        repair = self.get_repair_by_id(repair_id, mechanic_id)
+        if not repair:
+            return False
+        
         deleted_count = self.db.query(Repairs).filter(Repairs.id == repair_id).delete(synchronize_session=False)
         self.db.commit()
         return deleted_count > 0

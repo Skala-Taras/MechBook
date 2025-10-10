@@ -4,6 +4,8 @@ from typing import Optional
 class ElasticSearchEntry(BaseModel):
     id: int
     type: str  # 'client' or 'vehicle'
+    mechanic_id: int  # For multi-tenancy filtering
+    
     # Client-specific fields
     name: Optional[str] = None
     phone: Optional[str] = None

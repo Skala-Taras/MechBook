@@ -13,17 +13,17 @@ class IVehicleRepository(ABC):
         pass
 
     @abstractmethod
-    def get_vehicle_by_id(self, vehicle_id: int) -> Optional[Vehicles]:
+    def get_vehicle_by_id(self, vehicle_id: int, mechanic_id: int = None) -> Optional[Vehicles]:
         pass
 
     @abstractmethod
-    def get_recently_viewed_vehicles(self, limit: int, page: int) -> List[Vehicles]:
+    def get_recently_viewed_vehicles(self, limit: int, page: int, mechanic_id: int = None) -> List[Vehicles]:
         pass
 
     @abstractmethod
-    def update_vehicle(self, vehicle_id: int, data: dict) -> Optional[Vehicles]:
+    def update_vehicle(self, vehicle_id: int, data: dict, mechanic_id: int = None) -> Optional[Vehicles]:
         pass
 
     @abstractmethod
-    def delete_vehicle(self, vehicle_id: int) -> bool:
+    def delete_vehicle(self, vehicle_id: int, mechanic_id: int = None) -> bool:
         pass
