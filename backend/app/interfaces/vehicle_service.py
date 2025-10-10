@@ -13,7 +13,7 @@ class IVehicleService(ABC):
         pass
 
     @abstractmethod
-    def list_recently_viewed_vehicles(self) -> Optional[List[VehicleBasicInfo]]:
+    def list_recently_viewed_vehicles(self, page: int, size: int) -> Optional[List[VehicleBasicInfo]]:
         pass
 
     @abstractmethod

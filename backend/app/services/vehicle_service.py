@@ -60,8 +60,8 @@ class VehicleService(IVehicleService):
         self.vehicle_repo.update_last_view_column_in_vehicles(vehicle)
         return VehicleExtendedInfo.model_validate(vehicle)
 
-    def list_recently_viewed_vehicles(self) -> Optional[List[VehicleBasicInfo]]:
-        vehicles = self.vehicle_repo.get_recently_viewed_vehicles(limit=5)
+    def list_recently_viewed_vehicles(self, page: int, size: int) -> Optional[List[VehicleBasicInfo]]:
+        vehicles = self.vehicle_repo.get_recently_viewed_vehicles(limit=size, page=page)
         return [VehicleBasicInfo.model_validate(vehicle) for vehicle in vehicles]
 
     def update_vehicle_information(self, vehicle_id: int, data: VehicleEditData) -> VehicleExtendedInfo:

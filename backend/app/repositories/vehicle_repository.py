@@ -39,8 +39,8 @@ class VehicleRepository(IVehicleRepository):
         vehicle = self.db.query(Vehicles).options(joinedload(Vehicles.client)).filter(Vehicles.id == vehicle_id).first()
         return vehicle
 
-    def get_recently_viewed_vehicles(self, limit: int = 5) -> List[Vehicles]:
-        return self.db.query(Vehicles).order_by(desc(Vehicles.last_view_data)).limit(limit).all()
+    def get_recently_viewed_vehicles(self, limit: int, page: int) -> List[Vehicles]:
+        return self.db.query(Vehicles).order_by(desc(Vehicles.last_view_data)).offset((page - 1) * limit).limit(limit).all()
 
     def update_vehicle(self, vehicle_id: int, data: dict) -> Optional[Vehicles]:
         vehicle = self.db.query(Vehicles).filter(Vehicles.id == vehicle_id).first()

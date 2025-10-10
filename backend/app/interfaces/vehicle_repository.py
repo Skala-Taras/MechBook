@@ -17,7 +17,7 @@ class IVehicleRepository(ABC):
         pass
 
     @abstractmethod
-    def get_recently_viewed_vehicles(self, limit: int = 5) -> List[Vehicles]:
+    def get_recently_viewed_vehicles(self, limit: int, page: int) -> List[Vehicles]:
         pass
 
     @abstractmethod
