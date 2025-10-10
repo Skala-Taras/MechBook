@@ -2,6 +2,21 @@
 __pycache__/
 *.pyc
 
+# Ruff
+.ruff_cache/
+.ruff_cache/**
+.ruff_cache
+.ruff_cache/**
+
+.pytest_cache/
+.pytest_cache/**
+.pytest_cache
+.pytest_cache/**
+
+.coverage
+.coverage/**
+.coverage
+
 # Environment
 .venv/
 .env
