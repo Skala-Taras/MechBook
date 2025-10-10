@@ -34,8 +34,8 @@ def edit_vehicle_data(
 
 @router.get("/recent", response_model=list[VehicleBasicInfo])
 def recently_used(
-        page=1,
-        size=8,
+        page: int = 1,
+        size: int = 8,
         mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
         service: IVehicleService = Depends(VehicleService)
         ):

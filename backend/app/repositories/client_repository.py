@@ -6,6 +6,7 @@ from app.dependencies.db import get_db
 from app.interfaces.client_repository import IClientRepository
 from app.models.clients import Clients
 from app.models.vehicles import Vehicles
+from app.models.repairs import Repairs
 from app.schemas.client import ClientUpdate
 
 
@@ -51,6 +52,11 @@ class ClientRepository(IClientRepository):
         return client
 
     def delete_client(self, client_id: int) -> bool:
+        # Delete all vehicles for this client and then delete the client
+        from app.repositories.vehicle_repository import VehicleRepository
+        vehicle_repo = VehicleRepository(self.db)
+        vehicle_repo.delete_vehicle(client_id)
+  
         deleted_count = self.db.query(Clients).filter(Clients.id == client_id).delete(synchronize_session=False)
         self.db.commit()
         return deleted_count > 0

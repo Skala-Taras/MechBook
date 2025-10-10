@@ -496,7 +496,7 @@ class TestRecentlyViewedVehicles:
         # Assert
         assert response.status_code == 200
         result = response.json()
-        assert result is None or result == []
+        assert result == []
     
     def test_get_recently_viewed_after_viewing_vehicle(self, client: TestClient):
         """Test that vehicle appears after it is viewed"""
@@ -509,14 +509,14 @@ class TestRecentlyViewedVehicles:
         client.get(f"/api/v1/vehicles/{vehicle_id}")
         
         # Get recently viewed
-        response = client.get("/api/v1/vehicles/recent")
+        response = client.get("/api/v1/vehicles/recent?page=1&size=8")
         
         # Assert
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        if len(data) > 0:  # If list is not empty
-            assert data[0]["id"] == vehicle_id
+        assert len(data) >= 1
+        assert data[0]["id"] == vehicle_id
     
     def test_recently_viewed_limit_five(self, client: TestClient):
         """Test that maximum 5 vehicles are returned"""
@@ -535,13 +535,21 @@ class TestRecentlyViewedVehicles:
             vehicle_id = create_response.json()["vehicle_id"]
             client.get(f"/api/v1/vehicles/{vehicle_id}")
         
-        # Act
-        response = client.get("/api/v1/vehicles/recent")
+        # Act - page 1 size 5
+        response_page1 = client.get("/api/v1/vehicles/recent?page=1&size=5")
+        response_page2 = client.get("/api/v1/vehicles/recent?page=2&size=5")
+        response_page3 = client.get("/api/v1/vehicles/recent?page=3&size=5")
         
         # Assert
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) <= 5  # Maximum 5
+        assert response_page1.status_code == 200
+        assert response_page2.status_code == 200
+        assert response_page3.status_code == 200
+        data_page1 = response_page1.json()
+        data_page2 = response_page2.json()
+        data_page3 = response_page3.json()
+        assert len(data_page1) == 5
+        assert len(data_page2) == 5
+        assert len(data_page3) == 0
 
 
 # ============================================================================

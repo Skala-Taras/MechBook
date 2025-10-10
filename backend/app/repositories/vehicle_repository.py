@@ -10,6 +10,7 @@ from app.dependencies.db import get_db
 from app.interfaces.vehicle_repository import IVehicleRepository
 from app.models.vehicles import Vehicles
 from app.core.security import vin_fingerprint
+from app.models.repairs import Repairs
 
 class VehicleRepository(IVehicleRepository):
     def __init__(self, db: Session = Depends(get_db)):
@@ -60,6 +61,8 @@ class VehicleRepository(IVehicleRepository):
         return vehicle
 
     def delete_vehicle(self, vehicle_id: int) -> bool:
+        self.db.query(Repairs).filter(Repairs.vehicle_id == vehicle_id).delete(synchronize_session=False)
+        self.db.commit()
         deleted_count = self.db.query(Vehicles).filter(Vehicles.id == vehicle_id).delete(synchronize_session=False)
         self.db.commit()
         return deleted_count > 0 

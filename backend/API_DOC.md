@@ -222,6 +222,7 @@ Simple, consistent reference for frontend development.
 - **DELETE** `/clients/{client_id}`
 - **Auth required**: Yes
 - **Response**: `204 No Content`
+- **Note**: Deletes all associated vehicles and their repairs
 - **Errors**:
   - `401`: Not authenticated
   - `404`: Client not found
@@ -326,9 +327,12 @@ Simple, consistent reference for frontend development.
 ---
 
 ### Recently Viewed Vehicles
-**Get list of recently viewed vehicles (max 5)**
-- **GET** `/vehicles/recent`
+**Get list of recently viewed vehicles with pagination**
+- **GET** `/vehicles/recent?page=1&size=8`
 - **Auth required**: Yes
+- **Query Parameters**:
+  - `page`: Page number (default: 1)
+  - `size`: Items per page (default: 8)
 - **Response** (200):
 ```json
 [
@@ -344,7 +348,7 @@ Simple, consistent reference for frontend development.
   }
 ]
 ```
-- **Note**: Returns up to 5 most recently viewed vehicles, ordered by `last_view_data`
+- **Note**: Returns recently viewed vehicles ordered by `last_view_data` (most recent first)
 - **Errors**:
   - `401`: Not authenticated
 
@@ -355,10 +359,41 @@ Simple, consistent reference for frontend development.
 - **DELETE** `/vehicles/{vehicle_id}`
 - **Auth required**: Yes
 - **Response**: `204 No Content`
-- **Note**: Also removes vehicle from search index
+- **Note**: 
+  - Deletes all associated repairs for this vehicle
+  - Removes vehicle from search index
 - **Errors**:
   - `401`: Not authenticated
   - `404`: Vehicle not found
+
+---
+
+### Get Client Vehicles
+**Get paginated list of vehicles for a specific client**
+- **GET** `/clients/{client_id}/vehicles?page=1&size=3`
+- **Auth required**: Yes
+- **Query Parameters**:
+  - `page`: Page number (default: 1)
+  - `size`: Items per page (default: 3)
+- **Response** (200):
+```json
+[
+  {
+    "id": 42,
+    "model": "A4",
+    "mark": "Audi"
+  },
+  {
+    "id": 43,
+    "model": "X5",
+    "mark": "BMW"
+  }
+]
+```
+- **Note**: Returns list of vehicles owned by the client
+- **Errors**:
+  - `401`: Not authenticated
+  - `404`: Client not found
 
 ---
 

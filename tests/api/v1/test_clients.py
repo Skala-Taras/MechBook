@@ -453,6 +453,71 @@ class TestGetClient:
 
 
 # ============================================================================
+# TESTS FOR CLIENT VEHICLES LISTING
+# ============================================================================
+
+@pytest.mark.api
+@pytest.mark.integration
+class TestClientVehiclesListing:
+    """Tests for GET /api/v1/clients/{client_id}/vehicles with pagination"""
+    
+    def test_client_vehicles_empty(self, client: TestClient):
+        """Client with no vehicles returns empty list"""
+        # Arrange
+        create_authenticated_mechanic(client)
+        create_response = create_test_client(client)
+        client_id = create_response.json()["id"]
+        
+        # Act
+        response = client.get(f"{BASE_URL}/{client_id}/vehicles?page=1&size=3")
+        
+        # Assert
+        assert response.status_code == 200
+        assert response.json() == []
+    
+    def test_client_vehicles_pagination(self, client: TestClient):
+        """List vehicles for a client with page and size params"""
+        # Arrange
+        create_authenticated_mechanic(client)
+        client_resp = create_test_client(client, name="Owner", last_name="One")
+        client_id = client_resp.json()["id"]
+        
+        # Create 7 vehicles for this client
+        created_vehicle_ids = []
+        for i in range(7):
+            resp = client.post("/api/v1/vehicles", json={
+                "mark": f"Brand{i}",
+                "model": f"Model{i}",
+                "vin": f"VIN{i:011d}XYZ",
+                "client_id": client_id
+            })
+            assert resp.status_code == 201
+            created_vehicle_ids.append(resp.json()["vehicle_id"])
+        
+        # Act
+        page1 = client.get(f"{BASE_URL}/{client_id}/vehicles?page=1&size=3")
+        page2 = client.get(f"{BASE_URL}/{client_id}/vehicles?page=2&size=3")
+        page3 = client.get(f"{BASE_URL}/{client_id}/vehicles?page=3&size=3")
+        
+        # Assert
+        assert page1.status_code == 200
+        assert page2.status_code == 200
+        assert page3.status_code == 200
+        data1 = page1.json(); data2 = page2.json(); data3 = page3.json()
+        assert len(data1) == 3
+        assert len(data2) == 3
+        assert len(data3) == 1
+        
+        # Optional: ensure no overlap across pages by IDs
+        ids = [*data1, *data2, *data3]
+        seen = set()
+        for item in ids:
+            vid = item["id"]
+            assert vid not in seen
+            seen.add(vid)
+
+
+# ============================================================================
 # TESTS FOR UPDATING CLIENT (UPDATE)
 # ============================================================================
 

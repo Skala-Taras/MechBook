@@ -17,6 +17,9 @@ class VehicleBasicInfoForClient(BaseModel):
     model: str
     mark: str
 
+    class Config:
+        from_attributes = True
+
 class VehicleBasicInfo(BaseModel):
     id: int
     model: str

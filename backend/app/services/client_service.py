@@ -73,6 +73,7 @@ class ClientService(IClientService):
             self._logger.exception("Failed to remove client from Elasticsearch index")
 
     def get_client_vehicles(self, client_id: int, page: int, size: int) -> list[VehicleBasicInfoForClient]:
+        client = self.client_repo.get_client_by_id(client_id)
+        self.__validate_result(client)
         vehicles = self.client_repo.get_client_vehicles(client_id, page, size)
-        self.__validate_result(vehicles)
         return [VehicleBasicInfoForClient.model_validate(vehicle) for vehicle in vehicles]
