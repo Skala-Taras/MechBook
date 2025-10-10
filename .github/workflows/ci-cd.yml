@@ -3,8 +3,12 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ "master" ]
+    paths:
+      - "backend/**"
   pull_request:
     branches: [ "master" ]
+    paths:
+      - "backend/**"
 
 
 jobs:
@@ -50,11 +54,11 @@ jobs:
       - name: Add server to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.SERVER_IP_ADDRES }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.SERVER_PORT }} -H ${{ secrets.SERVER_IP_ADDRESS }} >> ~/.ssh/known_hosts
 
       - name: Deploy via SSH and restart services
         env:
-          SSH_HOST: ${{ secrets.SERVER_IP_ADDRES }}
+          SSH_HOST: ${{ secrets.SERVER_IP_ADDRESS }}
           SSH_USER: ${{ secrets.SERVER_USER_NAME }}
           SSH_PORT: ${{ secrets.SERVER_PORT }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
