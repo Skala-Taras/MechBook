@@ -3,17 +3,14 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ "master" ]
-    paths:
-      - "backend/**"
   pull_request:
     branches: [ "master" ]
-    paths:
-      - "backend/**"
 
 
 jobs:
   # CI jobs
   ci:
+    if: ${{ contains(join(github.event.head_commit.modified, ' '), 'backend/') || contains(join(github.event.head_commit.added, ' '), 'backend/') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -43,6 +40,7 @@ jobs:
   # CD jobs
   cd:
     needs: ci
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Start ssh-agent and add private key
@@ -54,7 +52,7 @@ jobs:
       - name: Add server to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.SERVER_PORT }} -H ${{ secrets.SERVER_ACCESS }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.SERVER_PORT }} -H ${{ secrets.SERVER_IP_ADDRESS }} >> ~/.ssh/known_hosts
 
       - name: Deploy via SSH and restart services
         env:
