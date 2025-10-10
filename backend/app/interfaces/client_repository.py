@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from app.models.clients import Clients
 from app.schemas.client import ClientUpdate
+from app.models.vehicles import Vehicles
 
 class IClientRepository(ABC):
     
@@ -31,4 +32,8 @@ class IClientRepository(ABC):
 
     @abstractmethod
     def delete_client(self, client_id: int) -> bool:
+        pass
+    
+    @abstractmethod
+    def get_client_vehicles(self, client_id: int, page: int, size: int) -> list[Vehicles]:
         pass

@@ -7,6 +7,7 @@ from app.interfaces.client_service import IClientService
 from app.repositories.client_repository import ClientRepository
 from app.schemas.client import ClientCreate, ClientUpdate, ClientExtendedInfo
 from app.services.search_engine_service import search_service
+from app.schemas.vehicle import VehicleBasicInfoForClient
 
 class ClientService(IClientService):
 
@@ -70,3 +71,8 @@ class ClientService(IClientService):
             search_service.delete_document(f"client-{client_id}")
         except Exception:
             self._logger.exception("Failed to remove client from Elasticsearch index")
+
+    def get_client_vehicles(self, client_id: int, page: int, size: int) -> list[VehicleBasicInfoForClient]:
+        vehicles = self.client_repo.get_client_vehicles(client_id, page, size)
+        self.__validate_result(vehicles)
+        return [VehicleBasicInfoForClient.model_validate(vehicle) for vehicle in vehicles]

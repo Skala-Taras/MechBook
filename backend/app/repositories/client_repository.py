@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.dependencies.db import get_db
 from app.interfaces.client_repository import IClientRepository
 from app.models.clients import Clients
+from app.models.vehicles import Vehicles
 from app.schemas.client import ClientUpdate
 
 
@@ -73,3 +74,6 @@ class ClientRepository(IClientRepository):
     
     def get_all_clients(self) -> list[Clients]:
         return self.db.query(Clients).all()
+    
+    def get_client_vehicles(self, client_id: int, page: int, size: int) -> list[Vehicles]:
+        return self.db.query(Vehicles).filter(Vehicles.client_id == client_id).offset((page - 1) * size).limit(size).all()

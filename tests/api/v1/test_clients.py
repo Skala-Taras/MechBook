@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 
 from tests.fixtures.helpers import AuthHelper
 from tests.fixtures.factories import MechanicFactory, ClientFactory
+from tests.fixtures.helpers import ClientHelper
+from tests.api.v1.test_vehicles import create_test_vehicle
 
 
 BASE_URL = "/api/v1/clients"
@@ -843,3 +845,4 @@ class TestClientEdgeCases:
         # Assert - all have unique ID
         assert len(created_ids) == 10
         assert len(set(created_ids)) == 10  
+

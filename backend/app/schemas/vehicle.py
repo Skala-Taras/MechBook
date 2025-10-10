@@ -12,6 +12,11 @@ class VehicleCreate(BaseModel):
     client_id: Optional[int] = None
     client: Optional[ClientCreate] = None
 
+class VehicleBasicInfoForClient(BaseModel):
+    id: int
+    model: str
+    mark: str
+
 class VehicleBasicInfo(BaseModel):
     id: int
     model: str

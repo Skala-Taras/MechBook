@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 from app.schemas.client import ClientCreate, ClientUpdate, ClientExtendedInfo
+from app.schemas.vehicle import VehicleBasicInfoForClient
 
 class IClientService(ABC):
 
@@ -20,3 +21,6 @@ class IClientService(ABC):
     def remove_client(self, client_id: int) -> None:
         pass
 
+    @abstractmethod
+    def get_client_vehicles(self, client_id: int, page: int, size: int) -> list[VehicleBasicInfoForClient]:
+        pass

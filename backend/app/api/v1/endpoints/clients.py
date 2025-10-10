@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.dependencies.jwt import get_current_mechanic_id_from_cookie
 from app.schemas.client import ClientCreate, ClientUpdate, ClientExtendedInfo
 from app.services.client_service import ClientService
+from app.schemas.vehicle import VehicleBasicInfoForClient
 
 router = APIRouter()
 
@@ -54,5 +55,18 @@ def delete_client(
 ):
     try:
         client_service.remove_client(client_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+@router.get("/{client_id}/vehicles" , response_model=list[VehicleBasicInfoForClient], status_code=200)
+def get_client_vehicles(
+    client_id: int,
+    page: int = 1,
+    size: int = 3,
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
+    client_service: ClientService = Depends(ClientService)
+):
+    try:
+        return client_service.get_client_vehicles(client_id, page, size)
     except ValueError:
         raise HTTPException(status_code=404, detail="Client not found")
