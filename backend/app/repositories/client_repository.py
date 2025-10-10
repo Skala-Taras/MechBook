@@ -6,7 +6,6 @@ from app.dependencies.db import get_db
 from app.interfaces.client_repository import IClientRepository
 from app.models.clients import Clients
 from app.models.vehicles import Vehicles
-from app.models.repairs import Repairs
 from app.schemas.client import ClientUpdate
 
 
