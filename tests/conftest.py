@@ -113,10 +113,28 @@ def app(db_session: Session):
     # Fake password service
     class FakePasswordService:
         async def recover_password(self, email: str):
-            return {"message": "If an account with that email exists, a password reset link has been sent."}
+            return {"message": "Jeśli istnieje konto z tym email, kod do resetu hasła został wysłany"}
         
-        def reset_password(self, token: str, new_password: str):
-            return {"message": "Password has been reset successfully."}
+        def verify_code(self, email: str, code: str):
+            # Mock verification - validates code format and content
+            from fastapi import HTTPException
+            # Validate code length 
+            if len(code) != 6 or not code.isdigit():
+                raise HTTPException(status_code=400, detail="Invalid verification code format")
+            # Invalid code for testing
+            if code == "000000":
+                raise HTTPException(status_code=400, detail="Invalid verification code")
+            return {
+                "message": "Kod został zweryfikowany",
+                "reset_token": "fake-reset-token-for-testing"
+            }
+        
+        def reset_password(self, reset_token: str, new_password: str):
+            # Mock reset - fails if no token
+            from fastapi import HTTPException
+            if not reset_token or reset_token == "invalid-token":
+                raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+            return {"message": "Password successfully reset"}
     
     from app.services.password_service import PasswordService
     fastapi_app.dependency_overrides[PasswordService] = lambda: FakePasswordService()

@@ -27,14 +27,14 @@ def login(mechanic: MechanicLogin, db: Session = Depends(get_db)):
     if not db_mechanic:
         raise HTTPException(status_code=404, detail="Not found mechanic")
     if not verify_password(mechanic.password, db_mechanic.hashed_password):
-        raise HTTPException(status_code=400, detail="Password is incorrect")
+        raise HTTPException(status_code=400, detail="Hasło jest nieprawidłowe")
 
     data = {
         "sub": str(db_mechanic.id),
         "role": "mechanic"
     }
     token = create_access_jwt_token(data)
-    response = JSONResponse(content={"message": "Login successful"})
+    response = JSONResponse(content={"message": "Zalogowano pomyślnie"})
     response.set_cookie(
         key="access_token",
         value=token,

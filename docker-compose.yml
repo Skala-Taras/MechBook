@@ -1,4 +1,18 @@
 services:
+
+  services:
+  mech-book-front:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    container_name: mech-book-front
+    networks:
+      - app-network
   backend:
     build:
       context: ./backend
@@ -94,13 +108,15 @@ services:
       - ./certbot/web:/var/www/certbot
     env_file:
       - ./.env
-    entrypoint: >
-      certbot certonly --webroot \
-      --webroot-path=/var/www/certbot
-      --email $${EMAIL} \
-      --agree-tos \
-      --no-eff-email \
-      -d $${DOMAIN}
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --nginx; sleep 12h & wait $!; done;'" #
+    
+    # entrypoint: >
+    #   certbot certonly --webroot \
+    #   --webroot-path=/var/www/certbot
+    #   --email $${EMAIL} \
+    #   --agree-tos \
+    #   --no-eff-email \
+    #   -d $${DOMAIN}
     depends_on:
       - nginx
     networks:
