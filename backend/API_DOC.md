@@ -579,7 +579,7 @@ All repair endpoints are nested under vehicles: `/vehicles/{vehicle_id}/repairs/
 ### Search
 **Unified search across clients and vehicles**
 - **GET** `/search/?q=query`
-- **Auth required**: Yes (automatically filters by your mechanic_id)
+- **Auth required**: Yes
 - **Query Parameters**:
   - `q`: **Required** - Search query string
 - **Response** (200):
