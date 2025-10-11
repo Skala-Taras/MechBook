@@ -68,9 +68,10 @@ class ClientService(IClientService):
         was_deleted = self.client_repo.delete_client(client_id, mechanic_id)
         self.__validate_result(was_deleted)
         try:
-            search_service.delete_document(f"client-{client_id}")
+            # Delete client and all their vehicles from Elasticsearch
+            search_service.delete_client_and_vehicles(client_id)
         except Exception:
-            self._logger.exception("Failed to remove client from Elasticsearch index")
+            self._logger.exception("Failed to remove client and vehicles from Elasticsearch index")
 
     def get_client_vehicles(self, client_id: int, page: int, size: int, mechanic_id: int) -> list[VehicleBasicInfoForClient]:
         client = self.client_repo.get_client_by_id(client_id, mechanic_id)

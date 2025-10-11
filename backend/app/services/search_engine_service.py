@@ -127,6 +127,29 @@ class SearchService:
     def delete_document(self, doc_id: str):
         es_client.delete(index=self.INDEX_NAME, id=doc_id, ignore=[404])
 
+    def delete_client_and_vehicles(self, client_id: int):
+        """
+        Deletes a client and all their vehicles from Elasticsearch index.
+        """
+        # Delete the client document
+        es_client.delete(index=self.INDEX_NAME, id=f"client-{client_id}", ignore=[404])
+        
+        # Delete all vehicles belonging to this client
+        delete_query = {
+            "query": {
+                "term": {
+                    "client_id": client_id
+                }
+            }
+        }
+        es_client.delete_by_query(index=self.INDEX_NAME, body=delete_query, ignore=[404])
+
+    def delete_vehicle_and_repairs(self, vehicle_id: int):
+        """
+        Deletes a vehicle from Elasticsearch index.
+        """
+        es_client.delete(index=self.INDEX_NAME, id=f"vehicle-{vehicle_id}", ignore=[404])
+
     def search(self, query: str, mechanic_id: int) -> list[SearchResult]:
         if not query:
             return []

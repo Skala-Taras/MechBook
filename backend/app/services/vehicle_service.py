@@ -80,4 +80,9 @@ class VehicleService(IVehicleService):
     def delete_vehicle(self, vehicle_id: int, mechanic_id: int) -> None:
         was_deleted = self.vehicle_repo.delete_vehicle(vehicle_id, mechanic_id)
         self.__validate_correct_result(was_deleted)
-        search_service.delete_document(f"vehicle-{vehicle_id}")
+        try:
+            # Delete vehicle from Elasticsearch (repairs cascade in DB only)
+            search_service.delete_vehicle_and_repairs(vehicle_id)
+        except Exception as e:
+            # Log but don't fail the request if ES deletion fails
+            print(f"Failed to remove vehicle from Elasticsearch: {e}")
