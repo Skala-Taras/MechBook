@@ -545,7 +545,7 @@ All repair endpoints are nested under vehicles: `/vehicles/{vehicle_id}/repairs/
 ### Search
 **Unified search across clients and vehicles**
 - **GET** `/search/?q=query`
-- **Auth required**: No
+- **Auth required**: Yes
 - **Query Parameters**:
   - `q`: **Required** - Search query string
 - **Response** (200):
