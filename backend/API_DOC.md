@@ -111,8 +111,8 @@ Simple, consistent reference for frontend development.
 
 ---
 
-### Password Recovery
-**Request password reset email**
+### Password Recovery - Step 1: Request Code
+**Request 6-digit verification code**
 - **POST** `/auth/recover-password`
 - **Auth required**: No
 - **Body**:
@@ -124,21 +124,55 @@ Simple, consistent reference for frontend development.
 - **Response** (200):
 ```json
 {
-  "message": "If an account with that email exists, a password reset email has been sent."
+  "message": "Jeśli istnieje konto z tym email, kod do resetu hasła został wysłany"
 }
 ```
-- **Note**: Returns same message regardless of email existence (prevents user enumeration)
+- **Notes**:
+  - Sends a 6-digit code to the user's email
+  - Code is valid for **15 minutes**
+  - Returns same message regardless of email existence (prevents user enumeration)
+  - Email contains the verification code (e.g., `123456`)
+  - Email subject: "Password Reset - Verification Code"
 
 ---
 
-### Password Reset
-**Reset password using token from email**
+### Password Recovery - Step 2: Verify Code
+**Verify the 6-digit code**
+- **POST** `/auth/verify-code`
+- **Auth required**: No
+- **Body**:
+```json
+{
+  "email": "ava.williams@example.com",
+  "code": "123456"
+}
+```
+- **Response** (200):
+```json
+{
+  "message": "Kod został zweryfikowany",
+  "reset_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+- **Errors**:
+  - `400`: Invalid verification code
+  - `400`: Verification code has expired (>15 minutes)
+- **Notes**:
+  - Code can only be used once
+  - Returns `reset_token` which is valid for **5 minutes**
+  - Use this token in Step 3 to reset password
+  - After verification, user has 5 minutes to complete password reset
+
+---
+
+### Password Recovery - Step 3: Reset Password
+**Set new password using reset_token**
 - **POST** `/auth/reset-password`
 - **Auth required**: No
 - **Body**:
 ```json
 {
-  "token": "<reset-token-from-email>",
+  "reset_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "new_password": "NewSecret123"
 }
 ```
@@ -147,9 +181,54 @@ Simple, consistent reference for frontend development.
 - **Response** (200):
 ```json
 {
-  "message": "Password has been reset successfully."
+  "message": "Password successfully reset"
 }
 ```
+- **Errors**:
+  - `400`: Invalid or expired reset token
+  - `400`: No verified session found (must verify code first)
+  - `400`: Reset session has expired (>5 minutes after verification)
+- **Notes**:
+  - Must have verified code first (Step 2)
+  - Token is valid for 5 minutes after verification
+  - Password is immediately updated
+
+**Email Template:**
+Email sent in Step 1 contains:
+- Subject: "Password Reset - Verification Code"  
+- 6-digit code displayed prominently (e.g., `123456`)
+- Polish instructions: "Twój kod do resetu hasła to:"
+- Valid for 15 minutes warning
+- Security notice in Polish
+
+**Complete Flow Example:**
+```javascript
+// Step 1: Request code
+POST /auth/recover-password
+{ "email": "user@example.com" }
+// Response: "Jeśli istnieje konto z tym email, kod do resetu hasła został wysłany"
+// → User receives email with code: 123456
+
+// Step 2: Verify code  
+POST /auth/verify-code
+{ "email": "user@example.com", "code": "123456" }
+// Response: "Kod został zweryfikowany" + reset_token
+// → Receives reset_token (valid 5 minutes)
+
+// Step 3: Reset password
+POST /auth/reset-password
+{ "reset_token": "...", "new_password": "NewPass123" }
+// Response: "Password successfully reset"
+// → Password changed, user can now login
+```
+
+**Security Features:**
+- 6-digit random code (000000-999999)
+- Code expires after 15 minutes
+- Code can only be used once
+- After verification: 5 minute window to reset
+- Generic messages prevent user enumeration
+- All tokens hashed in database
 
 ---
 

@@ -58,23 +58,36 @@ async def recover_password(
     password_service: PasswordService = Depends(PasswordService)
 ):
     """
-    Endpoint to request a password recovery email.
+    Step 1: Request a password recovery code.
+    Sends a 6-digit verification code to the user's email.
     """
-    await password_service.recover_password(email)
-    return {"message": "If an account with that email exists, a password reset email has been sent."}
+    result = await password_service.recover_password(email)
+    return result
 
+@router.post("/verify-code")
+def verify_code(
+    email: str = Body(...),
+    code: str = Body(...),
+    password_service: PasswordService = Depends(PasswordService)
+):
+    """
+    Step 2: Verify the 6-digit code sent to email.
+    Returns a reset_token if successful, which can be used to reset password.
+    """
+    result = password_service.verify_code(email, code)
+    return result
 
 @router.post("/reset-password")
 def reset_password(
-    token: str = Body(...),
+    reset_token: str = Body(...),
     new_password: str = Body(...),
     password_service: PasswordService = Depends(PasswordService)
 ):
     """
-    Endpoint to reset the password using a token.
+    Step 3: Reset the password using the reset_token from verify-code.
     """
-    password_service.reset_password(token, new_password)
-    return {"message": "Password has been reset successfully."}
+    result = password_service.reset_password(reset_token, new_password)
+    return result
 
 
 

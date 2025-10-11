@@ -173,32 +173,99 @@ class TestLogout:
 
 
 # ============================================================================
-# TESTY ODZYSKIWANIA HASŁA
+# TESTS FOR RECOVERY PASSWORD (3-STEP PROCESS)
 # ============================================================================
 
 @pytest.mark.api
 @pytest.mark.auth
 @pytest.mark.integration
 class TestPasswordRecovery:
-    """Tests for password recovery and reset"""
+    """Tests for password recovery with 6-digit verification code"""
     
-    def test_recover_password_returns_generic_message(self, client: TestClient):
-        """Return generic message to prevent user enumeration"""
+    def test_step1_recover_password_returns_generic_message(self, client: TestClient):
+        """
+        Step 1: Request verification code
+        Returns generic message to prevent user enumeration
+        """
         response = client.post(
             f"{AuthHelper.BASE_URL}/recover-password",
             json={"email": "any@example.com"}
         )
         
         data = assert_success_response(response, 200)
-        assert data["message"].startswith("If an account with that email exists")
+        assert "kod" in data["message"].lower() or "verification code" in data["message"].lower()
     
-    def test_reset_password_success(self, client: TestClient):
-        """Reset password with valid token"""
+    def test_step1_recover_password_for_existing_user(self, client: TestClient):
+        """
+        Step 1: Request code for existing user
+        Should send email with 6-digit code
+        """
+        email = "recover@example.com"
+        AuthHelper.register_user(client, email=email, password="oldpass123")
+        
         response = client.post(
-            f"{AuthHelper.BASE_URL}/reset-password",
-            json={"token": "dummy-token", "new_password": "newpass123"}
+            f"{AuthHelper.BASE_URL}/recover-password",
+            json={"email": email}
         )
         
         data = assert_success_response(response, 200)
-        assert data["message"] == "Password has been reset successfully."
+        # Should return success message (code sent via email)
+        assert response.status_code == 200
+    
+    def test_step2_verify_code_invalid(self, client: TestClient):
+        """
+        Step 2: Verify code - invalid code
+        Should return 400 error
+        """
+        response = client.post(
+            f"{AuthHelper.BASE_URL}/verify-code",
+            json={"email": "test@example.com", "code": "000000"}
+        )
+        
+        assert response.status_code == 400
+        assert "Invalid" in response.json()["detail"] or "kod" in response.json()["detail"].lower()
+    
+    def test_step2_verify_code_wrong_format(self, client: TestClient):
+        """
+        Step 2: Verify code - wrong format
+        Code should be 6 digits
+        """
+        response = client.post(
+            f"{AuthHelper.BASE_URL}/verify-code",
+            json={"email": "test@example.com", "code": "12345"}  # Only 5 digits
+        )
+        
+        # Should fail (either validation or not found)
+        assert response.status_code in [400, 422]
+    
+    def test_step3_reset_password_without_verification(self, client: TestClient):
+        """
+        Step 3: Reset password without verifying code first
+        Should return 400 error
+        """
+        response = client.post(
+            f"{AuthHelper.BASE_URL}/reset-password",
+            json={"reset_token": "invalid-token", "new_password": "newpass123"}
+        )
+        
+        assert response.status_code == 400
+    
+    def test_complete_flow_simulation(self, client: TestClient):
+        """
+        Simulate complete 3-step password reset flow
+        Note: Cannot test full flow without actual email/DB verification code
+        """
+        email = "fullflow@example.com"
+        AuthHelper.register_user(client, email=email, password="oldpass123")
+        
+        # Step 1: Request code
+        response1 = client.post(
+            f"{AuthHelper.BASE_URL}/recover-password",
+            json={"email": email}
+        )
+        assert response1.status_code == 200
+        
+        # Step 2: Would verify code here (requires actual code from DB)
+        # Step 3: Would reset password here (requires reset_token from step 2)
+        # These steps require access to DB to get actual verification code
 
