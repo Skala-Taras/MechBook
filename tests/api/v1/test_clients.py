@@ -46,6 +46,219 @@ def create_test_client(client: TestClient, **overrides):
 
 @pytest.mark.api
 @pytest.mark.integration
+class TestListClients:
+    """Tests for GET /api/v1/clients - listing clients with pagination"""
+    
+    def test_list_clients_empty(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with no clients
+        WHEN: GET /clients
+        THEN: Returns empty list
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Act
+        response = client.get(BASE_URL)
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 0
+    
+    def test_list_clients_with_data(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with multiple clients
+        WHEN: GET /clients
+        THEN: Returns list of clients
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Create 3 clients
+        for i in range(3):
+            create_test_client(client, name=f"Client{i}", last_name=f"Test{i}", phone=f"12345678{i}", pesel=f"1234567890{i}")
+        
+        # Act
+        response = client.get(BASE_URL)
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        # Should be ordered by newest first (ID desc)
+        assert data[0]["name"] == "Client2"
+        assert data[1]["name"] == "Client1"
+        assert data[2]["name"] == "Client0"
+    
+    def test_list_clients_pagination(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with 15 clients
+        WHEN: GET /clients with pagination params
+        THEN: Returns correct page of clients
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Create 15 clients (without PESEL to avoid conflicts)
+        for i in range(15):
+            create_test_client(client, name=f"Client{i}", last_name=f"Test{i}", phone=f"1234567{i:02d}", pesel=None)
+        
+        # Act - Get page 1 (size 10)
+        response_page1 = client.get(f"{BASE_URL}?page=1&size=10")
+        
+        # Assert page 1
+        assert response_page1.status_code == 200
+        data_page1 = response_page1.json()
+        assert len(data_page1) == 10
+        
+        # Act - Get page 2 (size 10)
+        response_page2 = client.get(f"{BASE_URL}?page=2&size=10")
+        
+        # Assert page 2
+        assert response_page2.status_code == 200
+        data_page2 = response_page2.json()
+        assert len(data_page2) == 5
+        
+        # Ensure different clients on each page
+        page1_ids = {c["id"] for c in data_page1}
+        page2_ids = {c["id"] for c in data_page2}
+        assert page1_ids.isdisjoint(page2_ids)
+    
+    def test_list_clients_custom_page_size(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with 20 clients
+        WHEN: GET /clients?size=5
+        THEN: Returns 5 clients per page
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+
+        for i in range(20):
+            create_test_client(client, name=f"Client{i}", last_name=f"Test{i}", phone=f"1234567{i:02d}", pesel=None)
+        
+        # Act
+        response = client.get(f"{BASE_URL}?page=1&size=5")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 5
+    
+    def test_list_clients_max_size_limit(self, client: TestClient):
+        """
+        GIVEN: Request with size > 100
+        WHEN: GET /clients?size=150
+        THEN: Returns max 100 clients
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Act
+        response = client.get(f"{BASE_URL}?size=150")
+        
+        # Assert
+        assert response.status_code == 200
+        # Even if no clients, it should handle the limit correctly
+
+
+@pytest.mark.api
+@pytest.mark.integration
+class TestCountClients:
+    """Tests for GET /api/v1/clients/count - counting clients"""
+    
+    def test_count_clients_zero(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with no clients
+        WHEN: GET /clients/count
+        THEN: Returns count of 0
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Act
+        response = client.get(f"{BASE_URL}/count")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert "count" in data
+        assert data["count"] == 0
+    
+    def test_count_clients_with_data(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with 5 clients
+        WHEN: GET /clients/count
+        THEN: Returns count of 5
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Create 5 clients
+        for i in range(5):
+            create_test_client(client, name=f"Client{i}", last_name=f"Test{i}", phone=f"12345678{i}")
+        
+        # Act
+        response = client.get(f"{BASE_URL}/count")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 5
+    
+    def test_count_clients_after_deletion(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with 3 clients, one deleted
+        WHEN: GET /clients/count
+        THEN: Returns count of 2
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Create 3 clients
+        client_ids = []
+        for i in range(3):
+            resp = create_test_client(client, name=f"Client{i}", last_name=f"Test{i}", phone=f"12345678{i}")
+            client_ids.append(resp.json()["id"])
+        
+        # Delete one client
+        client.delete(f"{BASE_URL}/{client_ids[0]}")
+        
+        # Act
+        response = client.get(f"{BASE_URL}/count")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 2
+    
+    def test_count_clients_isolated_per_mechanic(self, client: TestClient):
+        """
+        GIVEN: Two mechanics with different clients
+        WHEN: Each mechanic requests /clients/count
+        THEN: Each sees only their own count
+        """
+        # Arrange - Mechanic 1 with 3 clients
+        mechanic1 = create_authenticated_mechanic(client)
+        for i in range(3):
+            create_test_client(client, name=f"M1Client{i}", last_name=f"Test{i}", phone=f"11111111{i}")
+        
+        count1_response = client.get(f"{BASE_URL}/count")
+        assert count1_response.json()["count"] == 3
+        
+        # Logout and create Mechanic 2 with 2 clients
+        client.post("/api/v1/auth/logout")
+        mechanic2 = create_authenticated_mechanic(client)
+        for i in range(2):
+            create_test_client(client, name=f"M2Client{i}", last_name=f"Test{i}", phone=f"22222222{i}")
+        
+        count2_response = client.get(f"{BASE_URL}/count")
+        assert count2_response.json()["count"] == 2
+
+
+@pytest.mark.api
+@pytest.mark.integration
 class TestCreateClient:
     """Tests for POST /api/v1/clients - creating a client"""
     

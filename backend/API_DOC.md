@@ -155,6 +155,69 @@ Simple, consistent reference for frontend development.
 
 ## Clients
 
+### List All Clients
+**Get all clients with pagination**
+- **GET** `/clients/`
+- **Auth required**: Yes
+- **Query Parameters**:
+  - `page`: Page number (default: 1, min: 1)
+  - `size`: Clients per page (default: 10, min: 1, max: 100)
+- **Response** (200):
+```json
+[
+  {
+    "id": 15,
+    "name": "Emma",
+    "last_name": "Davis",
+    "phone": "+1-202-555-0115",
+    "pesel": "98765432109"
+  },
+  {
+    "id": 14,
+    "name": "Oliver",
+    "last_name": "Wilson",
+    "phone": "+1-202-555-0114",
+    "pesel": null
+  },
+  {
+    "id": 13,
+    "name": "Sophia",
+    "last_name": "Martinez",
+    "phone": "+1-202-555-0113",
+    "pesel": "11223344556"
+  }
+]
+```
+- **Notes**:
+  - Returns clients ordered by **newest first** (ID descending)
+  - Only returns clients belonging to the authenticated mechanic
+  - Empty list `[]` if no clients found
+  - If `size > 100`, automatically limited to 100
+  - If `page` or `size` < 1, defaults to valid values
+- **Errors**:
+  - `401`: Not authenticated
+
+---
+
+### Count Clients
+**Get total count of clients**
+- **GET** `/clients/count`
+- **Auth required**: Yes
+- **Response** (200):
+```json
+{
+  "count": 47
+}
+```
+- **Notes**:
+  - Returns total number of clients for the authenticated mechanic
+  - Useful for pagination (calculate total pages)
+  - Returns 0 if no clients
+- **Errors**:
+  - `401`: Not authenticated
+
+---
+
 ### Create Client
 **Create a new client**
 - **POST** `/clients/`

@@ -6,6 +6,44 @@ from app.schemas.vehicle import VehicleBasicInfoForClient
 
 router = APIRouter()
 
+@router.get("/", response_model=list[ClientExtendedInfo])
+def list_clients(
+    page: int = 1,
+    size: int = 10,
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
+    client_service: ClientService = Depends(ClientService)
+):
+    """
+    Get all clients for the authenticated mechanic with pagination.
+    
+    - **page**: Page number (default: 1)
+    - **size**: Number of clients per page (default: 10, max: 100)
+    
+    Returns clients ordered by newest first.
+    """
+    # Limit max size to prevent abuse
+    if size > 100:
+        size = 100
+    if size < 1:
+        size = 10
+    if page < 1:
+        page = 1
+    
+    return client_service.list_all_clients(page, size, mechanic_id)
+
+@router.get("/count", response_model=dict)
+def count_clients(
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
+    client_service: ClientService = Depends(ClientService)
+):
+    """
+    Get total count of clients for the authenticated mechanic.
+    
+    Returns: {"count": <number>}
+    """
+    count = client_service.count_all_clients(mechanic_id)
+    return {"count": count}
+
 @router.post("/", response_model=ClientExtendedInfo, status_code=201)
 def create_client(
     client_data: ClientCreate,

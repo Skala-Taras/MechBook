@@ -24,3 +24,11 @@ class IClientService(ABC):
     @abstractmethod
     def get_client_vehicles(self, client_id: int, page: int, size: int, mechanic_id: int) -> list[VehicleBasicInfoForClient]:
         pass
+    
+    @abstractmethod
+    def list_all_clients(self, page: int, size: int, mechanic_id: int) -> list[ClientExtendedInfo]:
+        pass
+    
+    @abstractmethod
+    def count_all_clients(self, mechanic_id: int) -> int:
+        pass

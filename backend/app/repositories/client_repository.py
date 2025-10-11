@@ -104,3 +104,18 @@ class ClientRepository(IClientRepository):
             if not client:
                 return []
         return self.db.query(Vehicles).filter(Vehicles.client_id == client_id).offset((page - 1) * size).limit(size).all()
+    
+    def get_all_clients_paginated(self, page: int, size: int, mechanic_id: int) -> list[Clients]:
+        """
+        Get all clients for a mechanic with pagination.
+        Returns clients ordered by ID (newest first).
+        """
+        query = self.db.query(Clients).filter(Clients.mechanic_id == mechanic_id)
+        query = query.order_by(Clients.id.desc())
+        return query.offset((page - 1) * size).limit(size).all()
+    
+    def count_clients(self, mechanic_id: int) -> int:
+        """
+        Count total number of clients for a mechanic.
+        """
+        return self.db.query(Clients).filter(Clients.mechanic_id == mechanic_id).count()

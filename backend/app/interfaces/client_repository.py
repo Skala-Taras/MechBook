@@ -37,3 +37,11 @@ class IClientRepository(ABC):
     @abstractmethod
     def get_client_vehicles(self, client_id: int, page: int, size: int, mechanic_id: int = None) -> list[Vehicles]:
         pass
+    
+    @abstractmethod
+    def get_all_clients_paginated(self, page: int, size: int, mechanic_id: int) -> list[Clients]:
+        pass
+    
+    @abstractmethod
+    def count_clients(self, mechanic_id: int) -> int:
+        pass

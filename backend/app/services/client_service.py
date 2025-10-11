@@ -78,3 +78,17 @@ class ClientService(IClientService):
         self.__validate_result(client)
         vehicles = self.client_repo.get_client_vehicles(client_id, page, size, mechanic_id)
         return [VehicleBasicInfoForClient.model_validate(vehicle) for vehicle in vehicles]
+    
+    def list_all_clients(self, page: int, size: int, mechanic_id: int) -> list[ClientExtendedInfo]:
+        """
+        Get all clients for a mechanic with pagination.
+        Returns list of clients ordered by newest first.
+        """
+        clients = self.client_repo.get_all_clients_paginated(page, size, mechanic_id)
+        return [ClientExtendedInfo.model_validate(client) for client in clients]
+    
+    def count_all_clients(self, mechanic_id: int) -> int:
+        """
+        Count total number of clients for a mechanic.
+        """
+        return self.client_repo.count_clients(mechanic_id)
