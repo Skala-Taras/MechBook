@@ -87,6 +87,6 @@ class VehicleRepository(IVehicleRepository):
         if not vehicle:
             return False
         
-        deleted_count = self.db.query(Vehicles).filter(Vehicles.id == vehicle_id).delete(synchronize_session=False)
+        self.db.delete(vehicle)
         self.db.commit()
-        return deleted_count > 0 
+        return True 

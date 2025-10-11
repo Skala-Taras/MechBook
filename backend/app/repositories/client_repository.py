@@ -60,9 +60,10 @@ class ClientRepository(IClientRepository):
         if not client:
             return False
         
-        deleted_count = self.db.query(Clients).filter(Clients.id == client_id).delete(synchronize_session=False)
+        # Use ORM delete to trigger cascade delete
+        self.db.delete(client)
         self.db.commit()
-        return deleted_count > 0
+        return True
 
     def get_client_by_name_and_last_name(self, name: str, last_name: str, mechanic_id: int = None) -> Optional[Clients]:
         # Case-insensitive search for duplicate checking

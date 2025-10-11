@@ -66,7 +66,8 @@ class RepairRepository(IRepairRepository):
         if not repair:
             return False
         
-        deleted_count = self.db.query(Repairs).filter(Repairs.id == repair_id).delete(synchronize_session=False)
+        # Use ORM delete
+        self.db.delete(repair)
         self.db.commit()
-        return deleted_count > 0
+        return True
 
