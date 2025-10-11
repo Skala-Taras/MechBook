@@ -86,3 +86,17 @@ class VehicleService(IVehicleService):
         except Exception as e:
             # Log but don't fail the request if ES deletion fails
             print(f"Failed to remove vehicle from Elasticsearch: {e}")
+    
+    def list_all_vehicles(self, page: int, size: int, mechanic_id: int) -> list[VehicleBasicInfo]:
+        """
+        Get all vehicles for a mechanic with pagination.
+        Returns list of vehicles with client info, ordered by newest first.
+        """
+        vehicles = self.vehicle_repo.get_all_vehicles_paginated(page, size, mechanic_id)
+        return [VehicleBasicInfo.model_validate(vehicle) for vehicle in vehicles]
+    
+    def count_all_vehicles(self, mechanic_id: int) -> int:
+        """
+        Count total number of vehicles for a mechanic.
+        """
+        return self.vehicle_repo.count_vehicles(mechanic_id)

@@ -89,4 +89,22 @@ class VehicleRepository(IVehicleRepository):
         
         self.db.delete(vehicle)
         self.db.commit()
-        return True 
+        return True
+    
+    def get_all_vehicles_paginated(self, page: int, size: int, mechanic_id: int) -> List[Vehicles]:
+        """
+        Get all vehicles for a mechanic with pagination.
+        Returns vehicles ordered by ID (newest first) with client info loaded.
+        """
+        from app.models.clients import Clients
+        query = self.db.query(Vehicles).options(joinedload(Vehicles.client))
+        query = query.join(Clients).filter(Clients.mechanic_id == mechanic_id)
+        query = query.order_by(desc(Vehicles.id))
+        return query.offset((page - 1) * size).limit(size).all()
+    
+    def count_vehicles(self, mechanic_id: int) -> int:
+        """
+        Count total number of vehicles for a mechanic.
+        """
+        from app.models.clients import Clients
+        return self.db.query(Vehicles).join(Clients).filter(Clients.mechanic_id == mechanic_id).count()

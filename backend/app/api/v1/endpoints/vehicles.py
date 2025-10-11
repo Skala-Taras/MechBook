@@ -8,6 +8,44 @@ from . import repairs
 router = APIRouter()
 router.include_router(repairs.router, prefix="/{vehicle_id}/repairs", tags=["Repairs"])
 
+@router.get("/", response_model=list[VehicleBasicInfo])
+def list_vehicles(
+    page: int = 1,
+    size: int = 10,
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
+    service: IVehicleService = Depends(VehicleService)
+):
+    """
+    Get all vehicles for the authenticated mechanic with pagination.
+    
+    - **page**: Page number (default: 1)
+    - **size**: Number of vehicles per page (default: 10, max: 100)
+    
+    Returns vehicles ordered by newest first with client info.
+    """
+    # Limit max size to prevent abuse
+    if size > 100:
+        size = 100
+    if size < 1:
+        size = 10
+    if page < 1:
+        page = 1
+    
+    return service.list_all_vehicles(page, size, mechanic_id)
+
+@router.get("/count", response_model=dict)
+def count_vehicles(
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie),
+    service: IVehicleService = Depends(VehicleService)
+):
+    """
+    Get total count of vehicles for the authenticated mechanic.
+    
+    Returns: {"count": <number>}
+    """
+    count = service.count_all_vehicles(mechanic_id)
+    return {"count": count}
+
 @router.post("/", status_code=201)
 def add_vehicle(
         data: VehicleCreate,

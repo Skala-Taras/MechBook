@@ -43,6 +43,178 @@ def create_test_vehicle(client: TestClient, **overrides):
 
 
 # ============================================================================
+# TESTS FOR LISTING VEHICLES
+# ============================================================================
+
+@pytest.mark.api
+@pytest.mark.vehicles
+@pytest.mark.integration
+class TestListVehicles:
+    """Tests for GET /api/v1/vehicles - listing vehicles with pagination"""
+    
+    def test_list_vehicles_empty(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with no vehicles
+        WHEN: GET /vehicles
+        THEN: Returns empty list
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Act
+        response = client.get("/api/v1/vehicles")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 0
+    
+    def test_list_vehicles_with_data(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with multiple vehicles
+        WHEN: GET /vehicles
+        THEN: Returns list of vehicles with client info
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Create 3 vehicles
+        for i in range(3):
+            create_test_vehicle(client, mark=f"Toyota{i}", model=f"Model{i}", 
+                              vin=f"1234567890123456{i}", client_name=f"Client{i}")
+        
+        # Act
+        response = client.get("/api/v1/vehicles")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        # Check structure
+        assert "id" in data[0]
+        assert "mark" in data[0]
+        assert "model" in data[0]
+        assert "client" in data[0]
+        assert "id" in data[0]["client"]
+        assert "name" in data[0]["client"]
+        assert "last_name" in data[0]["client"]
+        # Should be ordered by newest first (ID desc)
+        assert data[0]["mark"] == "Toyota2"
+        assert data[1]["mark"] == "Toyota1"
+        assert data[2]["mark"] == "Toyota0"
+    
+    def test_list_vehicles_pagination(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with 15 vehicles
+        WHEN: GET /vehicles with pagination params
+        THEN: Returns correct page of vehicles
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Create 15 vehicles
+        for i in range(15):
+            create_test_vehicle(client, mark=f"Car{i}", model=f"Model{i}", 
+                              vin=f"1234567890123{i:04d}", client_name=f"Client{i}")
+        
+        # Act - Get page 1 (size 10)
+        response_page1 = client.get("/api/v1/vehicles?page=1&size=10")
+        
+        # Assert page 1
+        assert response_page1.status_code == 200
+        data_page1 = response_page1.json()
+        assert len(data_page1) == 10
+        
+        # Act - Get page 2 (size 10)
+        response_page2 = client.get("/api/v1/vehicles?page=2&size=10")
+        
+        # Assert page 2
+        assert response_page2.status_code == 200
+        data_page2 = response_page2.json()
+        assert len(data_page2) == 5
+        
+        # Ensure different vehicles on each page
+        page1_ids = {v["id"] for v in data_page1}
+        page2_ids = {v["id"] for v in data_page2}
+        assert page1_ids.isdisjoint(page2_ids)
+
+
+@pytest.mark.api
+@pytest.mark.vehicles
+@pytest.mark.integration
+class TestCountVehicles:
+    """Tests for GET /api/v1/vehicles/count - counting vehicles"""
+    
+    def test_count_vehicles_zero(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with no vehicles
+        WHEN: GET /vehicles/count
+        THEN: Returns count of 0
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Act
+        response = client.get("/api/v1/vehicles/count")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert "count" in data
+        assert data["count"] == 0
+    
+    def test_count_vehicles_with_data(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with 5 vehicles
+        WHEN: GET /vehicles/count
+        THEN: Returns count of 5
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Create 5 vehicles
+        for i in range(5):
+            create_test_vehicle(client, mark=f"Car{i}", model=f"Model{i}", 
+                              vin=f"1234567890123456{i}", client_name=f"Client{i}")
+        
+        # Act
+        response = client.get("/api/v1/vehicles/count")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 5
+    
+    def test_count_vehicles_after_deletion(self, client: TestClient):
+        """
+        GIVEN: Logged in mechanic with 3 vehicles, one deleted
+        WHEN: GET /vehicles/count
+        THEN: Returns count of 2
+        """
+        # Arrange
+        create_authenticated_mechanic(client)
+        
+        # Create 3 vehicles
+        vehicle_ids = []
+        for i in range(3):
+            resp = create_test_vehicle(client, mark=f"Car{i}", model=f"Model{i}", 
+                                      vin=f"1234567890123456{i}", client_name=f"Client{i}")
+            vehicle_ids.append(resp.json()["vehicle_id"])
+        
+        # Delete one vehicle
+        client.delete(f"/api/v1/vehicles/{vehicle_ids[0]}")
+        
+        # Act
+        response = client.get("/api/v1/vehicles/count")
+        
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 2
+
+
+# ============================================================================
 # TESTS FOR CREATING VEHICLE (CREATE)
 # ============================================================================
 

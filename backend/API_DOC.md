@@ -317,6 +317,69 @@ Simple, consistent reference for frontend development.
 
 ## Vehicles
 
+### List All Vehicles
+**Get all vehicles with pagination**
+- **GET** `/vehicles/`
+- **Auth required**: Yes
+- **Query Parameters**:
+  - `page`: Page number (default: 1, min: 1)
+  - `size`: Vehicles per page (default: 10, min: 1, max: 100)
+- **Response** (200):
+```json
+[
+  {
+    "id": 42,
+    "mark": "Audi",
+    "model": "A4",
+    "client": {
+      "id": 10,
+      "name": "Ava",
+      "last_name": "Williams"
+    }
+  },
+  {
+    "id": 41,
+    "mark": "BMW",
+    "model": "X5",
+    "client": {
+      "id": 15,
+      "name": "John",
+      "last_name": "Smith"
+    }
+  }
+]
+```
+- **Notes**:
+  - Returns vehicles ordered by **newest first** (ID descending)
+  - Only returns vehicles belonging to the authenticated mechanic
+  - Empty list `[]` if no vehicles found
+  - If `size > 100`, automatically limited to 100
+  - If `page` or `size` < 1, defaults to valid values
+  - Each vehicle includes client basic info (id, name, last_name)
+- **Errors**:
+  - `401`: Not authenticated
+
+---
+
+### Count Vehicles
+**Get total count of vehicles**
+- **GET** `/vehicles/count`
+- **Auth required**: Yes
+- **Response** (200):
+```json
+{
+  "count": 127
+}
+```
+- **Notes**:
+  - Returns total number of vehicles for the authenticated mechanic
+  - Useful for pagination (calculate total pages)
+  - Returns 0 if no vehicles
+- **Errors**:
+  - `401`: Not authenticated
+
+---
+
 ### Create Vehicle
 **Create a new vehicle with client association**
 - **POST** `/vehicles/`

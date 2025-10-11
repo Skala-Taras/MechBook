@@ -27,3 +27,11 @@ class IVehicleRepository(ABC):
     @abstractmethod
     def delete_vehicle(self, vehicle_id: int, mechanic_id: int = None) -> bool:
         pass
+    
+    @abstractmethod
+    def get_all_vehicles_paginated(self, page: int, size: int, mechanic_id: int) -> List[Vehicles]:
+        pass
+    
+    @abstractmethod
+    def count_vehicles(self, mechanic_id: int) -> int:
+        pass
