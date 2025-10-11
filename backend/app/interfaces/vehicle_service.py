@@ -5,21 +5,21 @@ from app.schemas.vehicle import VehicleCreate, VehicleEditData, VehicleExtendedI
 class IVehicleService(ABC):
 
     @abstractmethod
-    def register_new_vehicle(self, data: VehicleCreate, mechanic_id: int) -> VehicleExtendedInfo:
+    def register_new_vehicle(self, data: VehicleCreate, mechanic_id: int) -> int:
         pass
 
     @abstractmethod
-    def get_vehicle_details(self, vehicle_id: int) -> VehicleExtendedInfo:
+    def get_vehicle_details(self, vehicle_id: int, mechanic_id: int) -> VehicleExtendedInfo:
         pass
 
     @abstractmethod
-    def list_recently_viewed_vehicles(self, page: int, size: int) -> Optional[List[VehicleBasicInfo]]:
+    def list_recently_viewed_vehicles(self, page: int, size: int, mechanic_id: int) -> Optional[List[VehicleBasicInfo]]:
         pass
 
     @abstractmethod
-    def update_vehicle_information(self, vehicle_id: int, data: VehicleEditData) -> VehicleExtendedInfo:
+    def update_vehicle_information(self, vehicle_id: int, data: VehicleEditData, mechanic_id: int) -> VehicleExtendedInfo:
         pass
 
     @abstractmethod
-    def delete_vehicle(self, vehicle_id: int) -> None:
+    def delete_vehicle(self, vehicle_id: int, mechanic_id: int) -> None:
         pass 

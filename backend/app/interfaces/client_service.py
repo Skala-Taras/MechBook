@@ -10,17 +10,17 @@ class IClientService(ABC):
         pass
 
     @abstractmethod
-    def get_client_details(self, client_id: int) -> Optional[ClientExtendedInfo]:
+    def get_client_details(self, client_id: int, mechanic_id: int) -> Optional[ClientExtendedInfo]:
         pass
 
     @abstractmethod
-    def update_client_details(self, client_id: int, client_data: ClientUpdate) -> Optional[ClientExtendedInfo]:
+    def update_client_details(self, client_id: int, client_data: ClientUpdate, mechanic_id: int) -> Optional[ClientExtendedInfo]:
         pass
 
     @abstractmethod
-    def remove_client(self, client_id: int) -> None:
+    def remove_client(self, client_id: int, mechanic_id: int) -> None:
         pass
 
     @abstractmethod
-    def get_client_vehicles(self, client_id: int, page: int, size: int) -> list[VehicleBasicInfoForClient]:
+    def get_client_vehicles(self, client_id: int, page: int, size: int, mechanic_id: int) -> list[VehicleBasicInfoForClient]:
         pass

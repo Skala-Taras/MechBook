@@ -111,7 +111,7 @@ class SearchService:
         doc = ElasticSearchEntry(
             id=vehicle.id,
             type="vehicle",
-            mechanic_id=vehicle.client.mechanic_id,
+            mechanic_id=vehicle.mechanic_id,
             name=f"{vehicle.mark} {vehicle.model}",
             vin=vehicle.vin,
             client_id=vehicle.client_id,

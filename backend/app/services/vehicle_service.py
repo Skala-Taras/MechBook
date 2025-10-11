@@ -48,10 +48,11 @@ class VehicleService(IVehicleService):
             "model": data.model,
             "vin": data.vin,
             "client_id": client_id,
+            "mechanic_id": mechanic_id,  
             "last_view_data": datetime.utcnow(),
         }
         
-        new_vehicle = self.vehicle_repo.create_vehicle(new_vehicle_data)
+        new_vehicle = self.vehicle_repo.create_vehicle(new_vehicle_data, mechanic_id)
         search_service.index_vehicle(new_vehicle)
         return new_vehicle.id
 

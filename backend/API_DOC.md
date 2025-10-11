@@ -10,6 +10,22 @@ Simple, consistent reference for frontend development.
   - Send the cookie with all authenticated requests
 - **Content-Type**: `application/json`
 
+### Multi-Tenancy
+**Each mechanic has isolated data space:**
+- Each mechanic sees **only their own** data (clients, vehicles, repairs)
+- Mechanic A **cannot** view/edit Mechanic B's data
+- Duplicates are checked **per mechanic**:
+  - **Name + Last Name**: Mechanic A and B can both have a client "John Smith"
+  - **Phone**: Mechanic A and B can both have a client with the same phone number
+  - **PESEL**: Mechanic A and B can both have a client with the same PESEL
+  - **VIN**: Mechanic A and B can both have a vehicle with the same VIN
+- Within **one** mechanic, duplicates are blocked (409 Conflict)
+
+**Frontend implications:**
+- Every request is automatically filtered by `mechanic_id` from JWT token
+- You don't need to pass `mechanic_id` in requests - it's extracted from cookie
+- `404 Not Found` can mean "doesn't exist" OR "belongs to another mechanic"
+
 ---
 
 ## Authentication
@@ -167,9 +183,14 @@ Simple, consistent reference for frontend development.
   "pesel": "12345678901"
 }
 ```
+- **Uniqueness Rules** (per mechanic):
+  - **Name + Last Name**: You cannot have two clients "John Smith"
+  - **Phone**: You cannot have two clients with the same phone number
+  - **PESEL**: You cannot have two clients with the same PESEL
+  - **Note**: Another mechanic CAN have a client with the same data
 - **Errors**:
   - `401`: Not authenticated
-  - `409`: Client with this name+last_name, phone, or PESEL already exists
+  - `409`: Client with this name+last_name, phone, or PESEL already exists **for your mechanic account**
   - `422`: Validation error (PESEL not 11 characters)
 
 ---
@@ -190,7 +211,7 @@ Simple, consistent reference for frontend development.
 ```
 - **Errors**:
   - `401`: Not authenticated
-  - `404`: Client not found
+  - `404`: Client not found **or belongs to another mechanic**
 
 ---
 
@@ -222,10 +243,12 @@ Simple, consistent reference for frontend development.
 - **DELETE** `/clients/{client_id}`
 - **Auth required**: Yes
 - **Response**: `204 No Content`
-- **Note**: Deletes all associated vehicles and their repairs
+- **Note**: 
+  - **Cascade deletion**: Automatically deletes all client's vehicles and their repairs
+  - Works **only on your clients** - you cannot delete another mechanic's client
 - **Errors**:
   - `401`: Not authenticated
-  - `404`: Client not found
+  - `404`: Client not found **or belongs to another mechanic**
 
 ---
 
@@ -269,9 +292,13 @@ Simple, consistent reference for frontend development.
   "vehicle_id": 42
 }
 ```
+- **Uniqueness Rules** (per mechanic):
+  - **VIN**: You cannot have two vehicles with the same VIN
+  - **Note**: Another mechanic CAN have a vehicle with the same VIN
 - **Errors**:
-  - `400`: Missing client data (neither client_id nor client provided)
+  - `400`: Missing client data OR client_id belongs to another mechanic
   - `401`: Not authenticated
+  - `409`: Vehicle with this VIN already exists **for your mechanic account**
   - `422`: Validation error (VIN not 17 characters)
 
 ---
@@ -296,10 +323,12 @@ Simple, consistent reference for frontend development.
   }
 }
 ```
-- **Note**: Updates `last_view_data` timestamp when accessed
+- **Note**: 
+  - Updates `last_view_data` timestamp when accessed
+  - Returns **only your vehicles** - cannot access vehicles of other mechanics
 - **Errors**:
   - `401`: Not authenticated
-  - `404`: Vehicle not found
+  - `404`: Vehicle not found **or belongs to another mechanic**
 
 ---
 
@@ -360,11 +389,12 @@ Simple, consistent reference for frontend development.
 - **Auth required**: Yes
 - **Response**: `204 No Content`
 - **Note**: 
-  - Deletes all associated repairs for this vehicle
+  - **Cascade deletion**: Automatically deletes all repairs for this vehicle
   - Removes vehicle from search index
+  - Works **only on your vehicles** - you cannot delete another mechanic's vehicle
 - **Errors**:
   - `401`: Not authenticated
-  - `404`: Vehicle not found
+  - `404`: Vehicle not found **or belongs to another mechanic**
 
 ---
 
@@ -390,10 +420,12 @@ Simple, consistent reference for frontend development.
   }
 ]
 ```
-- **Note**: Returns list of vehicles owned by the client
+- **Note**: 
+  - Returns vehicles **only for your clients**
+  - Returns empty list if client doesn't have vehicles
 - **Errors**:
   - `401`: Not authenticated
-  - `404`: Client not found
+  - `404`: Client not found **or belongs to another mechanic**
 
 ---
 
@@ -500,10 +532,12 @@ All repair endpoints are nested under vehicles: `/vehicles/{vehicle_id}/repairs/
   }
 }
 ```
-- **Note**: Updates `last_seen` timestamp when accessed
+- **Note**: 
+  - Updates `last_seen` timestamp when accessed
+  - Returns **only repairs for your vehicles**
 - **Errors**:
   - `401`: Not authenticated
-  - `404`: Repair not found
+  - `404`: Repair not found **or belongs to vehicle of another mechanic**
 
 ---
 
@@ -545,7 +579,7 @@ All repair endpoints are nested under vehicles: `/vehicles/{vehicle_id}/repairs/
 ### Search
 **Unified search across clients and vehicles**
 - **GET** `/search/?q=query`
-- **Auth required**: No
+- **Auth required**: Yes (automatically filters by your mechanic_id)
 - **Query Parameters**:
   - `q`: **Required** - Search query string
 - **Response** (200):
@@ -572,7 +606,9 @@ All repair endpoints are nested under vehicles: `/vehicles/{vehicle_id}/repairs/
   - **Multi-field search**: Searches client names, phone numbers, vehicle marks, models, and VINs
   - **Ranking**: Clients ranked higher than vehicles
   - **Flexible matching**: Order-independent ("Williams Ava" matches "Ava Williams")
+  - **Multi-tenancy**: Searches **only your data** - other mechanics' data is invisible
 - **Errors**:
+  - `401`: Not authenticated
   - `422`: Missing query parameter
 
 ---

@@ -9,7 +9,7 @@ class IVehicleRepository(ABC):
         pass
 
     @abstractmethod
-    def create_vehicle(self, vehicle_data: dict) -> Vehicles:
+    def create_vehicle(self, vehicle_data: dict, mechanic_id: int = None) -> Vehicles:
         pass
 
     @abstractmethod

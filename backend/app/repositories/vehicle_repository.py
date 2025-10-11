@@ -20,13 +20,26 @@ class VehicleRepository(IVehicleRepository):
         self.db.commit()
         self.db.refresh(vehicle)
 
-    def create_vehicle(self, vehicle_data: dict) -> Vehicles:
+    def create_vehicle(self, vehicle_data: dict, mechanic_id: int = None) -> Vehicles:
         vin = vehicle_data.get("vin")
         if vin:
             # Create fingerprint for duplicate detection
             fingerprint = vin_fingerprint(vin)
-            if self.db.query(Vehicles).filter(Vehicles.vin_hash == fingerprint).first():
-                raise HTTPException(status_code=409, detail="Vehicle with this VIN already exists.")
+            
+            # Check for duplicate VIN per mechanic
+            if mechanic_id is not None:
+                from app.models.clients import Clients
+                existing_vehicle = self.db.query(Vehicles)\
+                    .join(Clients)\
+                    .filter(Vehicles.vin_hash == fingerprint, Clients.mechanic_id == mechanic_id)\
+                    .first()
+                if existing_vehicle:
+                    raise HTTPException(status_code=409, detail="Vehicle with this VIN already exists.")
+            else:
+                # Fallback to global check if mechanic_id not provided
+                if self.db.query(Vehicles).filter(Vehicles.vin_hash == fingerprint).first():
+                    raise HTTPException(status_code=409, detail="Vehicle with this VIN already exists.")
+            
             vehicle_data["vin_hash"] = fingerprint
         
         new_vehicle = Vehicles(**vehicle_data)
