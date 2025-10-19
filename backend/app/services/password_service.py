@@ -11,6 +11,7 @@ from app.core.mailer import send_email_async
 from app.core.config import settings
 from app.dependencies.db import get_db
 from app.models.password_reset_tokens import PasswordResetTokens
+from app.core.security import verify_password
 
 class PasswordService:
     def __init__(self, db: Session = Depends(get_db)):
@@ -19,6 +20,19 @@ class PasswordService:
     def _generate_verification_code(self) -> str:
         """Generate a random 6-digit verification code"""
         return ''.join(random.choices(string.digits, k=6))
+    
+    def change_password(self, current_password: str, new_password: str, mechanic_id: int):
+        """
+        Change the password of the current mechanic.
+        """
+        mechanic = crud_mechanic.get_mechanic_by_id(self.db, mechanic_id)
+        if not mechanic:
+            raise HTTPException(status_code=404, detail="Mechanic not found")
+        if not verify_password(current_password, mechanic.hashed_password):
+            raise HTTPException(status_code=400, detail="Obecne hasło jest nieprawidłowe")
+        hashed_new_password = hash_password(new_password)
+        crud_mechanic.update_mechanic_password(self.db, mechanic, hashed_new_password)
+        return {"message": "Hasło zostało zmienione"}
 
     async def recover_password(self, email: str):
         """

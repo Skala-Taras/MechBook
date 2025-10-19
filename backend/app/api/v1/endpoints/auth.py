@@ -8,7 +8,7 @@ from app.core.security import verify_password, create_access_jwt_token
 from app.crud import mechanic as crud_mechanic
 from app.crud.mechanic import get_mechanic_by_email
 from app.dependencies.db import get_db
-from app.schemas.mechanic import MechanicCreate, MechanicOut, MechanicLogin
+from app.schemas.mechanic import MechanicCreate, MechanicOut, MechanicLogin, ChangePasswordRequest
 from app.services.password_service import PasswordService
 
 router = APIRouter()
@@ -39,8 +39,8 @@ def login(mechanic: MechanicLogin, db: Session = Depends(get_db)):
         key="access_token",
         value=token,
         httponly=True,
-        secure=False,  
-        samesite="Lax",  
+        secure=True,  
+        samesite="None",  
         max_age=60*60*24*7
     )
     return response
@@ -90,6 +90,17 @@ def reset_password(
     return result
 
 
+@router.post("/change-password")
+def change_password(
+    data: ChangePasswordRequest = Body(...),
+    password_service: PasswordService = Depends(PasswordService),
+    mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
+):
+    """
+    Change the password of the current mechanic.
+    """
+    result = password_service.change_password(data.current_password, data.new_password, mechanic_id)
+    return result
 
 @router.post("/logout")
 def logout():
