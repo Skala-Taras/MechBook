@@ -28,11 +28,12 @@ def create_authenticated_mechanic(client: TestClient):
 
 def create_test_client(client: TestClient, **overrides):
     """Creates a client through API and returns the response"""
+    import random
     default_data = {
         "name": "Jan",
         "last_name": "Kowalski",
         "phone": "123456789",
-        "pesel": "12345678901"
+        "pesel": f"{random.randint(10000000000, 99999999999)}"  # Generate unique PESEL
     }
     default_data.update(overrides)
     

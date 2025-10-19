@@ -110,7 +110,7 @@ class TestLogin:
             f"{AuthHelper.BASE_URL}/login",
             json={"email": email, "password": "wrong_password"}
         )
-        assert_error_response(response, 400, "Password is incorrect")
+        assert_error_response(response, 400, "Hasło jest nieprawidłowe")
     
     
 

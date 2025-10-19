@@ -11,6 +11,10 @@ class VehicleCreate(BaseModel):
     vin: Optional[constr(max_length=17, min_length=17)] = None #17 length
     client_id: Optional[int] = None
     client: Optional[ClientCreate] = None
+    fuel_type: Optional[str] = None
+    engine_capacity: Optional[float] = None
+    engine_power: Optional[int] = None
+    registration_number: Optional[str] = None
 
 class VehicleBasicInfoForClient(BaseModel):
     id: int
@@ -34,6 +38,10 @@ class VehicleExtendedInfo(BaseModel):
     model: str
     mark: str
     vin: Optional[constr(max_length=17, min_length=17)] = None #17 length
+    fuel_type: Optional[str] = None
+    engine_capacity: Optional[float] = None
+    engine_power: Optional[int] = None
+    registration_number: Optional[str] = None
     client: ClientExtendedInfo
 
     class Config:
@@ -45,3 +53,7 @@ class VehicleEditData(BaseModel):
     mark: Optional[str] = None
     vin: Optional[constr(max_length=17, min_length=17)] = None
     client_id: Optional[int] = None
+    fuel_type: Optional[str] = None
+    engine_capacity: Optional[float] = None
+    engine_power: Optional[int] = None
+    registration_number: Optional[str] = None

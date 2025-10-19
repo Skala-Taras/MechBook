@@ -50,6 +50,10 @@ class VehicleService(IVehicleService):
             "client_id": client_id,
             "mechanic_id": mechanic_id,  
             "last_view_data": datetime.utcnow(),
+            "fuel_type": data.fuel_type,
+            "engine_capacity": data.engine_capacity,
+            "engine_power": data.engine_power,
+            "registration_number": data.registration_number,
         }
         
         new_vehicle = self.vehicle_repo.create_vehicle(new_vehicle_data, mechanic_id)

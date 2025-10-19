@@ -469,7 +469,11 @@ POST /auth/reset-password
   "mark": "BMW",
   "model": "X5",
   "vin": "WAUZZZ8P79A000000",
-  "client_id": 10
+  "client_id": 10,
+  "fuel_type": "diesel",
+  "engine_capacity": 2.0,
+  "engine_power": 140,
+  "registration_number": "FZ45T"
 }
 ```
 - **Body** (Option 2: Create new client inline):
@@ -478,6 +482,10 @@ POST /auth/reset-password
   "mark": "Audi",
   "model": "A4",
   "vin": "WAUZZZ8K9BA000000",
+  "fuel_type": "petrol",
+  "engine_capacity": 1.8,
+  "engine_power": 118,
+  "registration_number": "TD123",
   "client": {
     "name": "Ava",
     "last_name": "Williams",
@@ -487,10 +495,14 @@ POST /auth/reset-password
 }
 ```
 - **Fields**:
-  - `mark`: **Required**
-  - `model`: **Required**
-  - `vin`: *Optional* (must be exactly 17 characters if provided)
-  - `client_id` OR `client`: **One required**
+- `mark`: **Required**
+- `model`: **Required**
+- `vin`: *Optional* (must be exactly 17 characters if provided)
+- `fuel_type`: *Optional* (e.g., "petrol", "diesel", "LPG", "hybrid", "EV")
+- `engine_capacity`: *Optional* (number, engine liters; e.g., 1.8 or 2.0)
+- `engine_power`: *Optional* (integer, in kW or HP; stored as integer)
+- `registration_number`: *Optional* (string, max 32)
+- `client_id` OR `client`: **One required**
 - **Response** (201):
 ```json
 {
@@ -519,6 +531,10 @@ POST /auth/reset-password
   "model": "A4",
   "mark": "Audi",
   "vin": "WAUZZZ8K9BA000000",
+  "fuel_type": "petrol",
+  "engine_capacity": 1798,
+  "engine_power": 118,
+  "registration_number": "TD123",
   "client": {
     "id": 10,
     "name": "Ava",
@@ -547,11 +563,18 @@ POST /auth/reset-password
   "mark": "Audi",
   "model": "A6",
   "vin": "WAUZZZ8K9BA000001",
-  "client_id": 11
+  "client_id": 11,
+  "fuel_type": "diesel",
+  "engine_capacity": 2967,
+  "engine_power": 210,
+  "registration_number": "FZ45T"
 }
 ```
 - **Validation**:
-  - `vin`: Must be exactly 17 characters if provided
+- `vin`: Must be exactly 17 characters if provided
+- `engine_capacity`: If provided, number (e.g., 1.8 or 2.0)
+- `engine_power`: If provided, integer
+- `registration_number`: If provided, string (max 32)
 - **Response** (200): Same as Get Vehicle
 - **Errors**:
   - `401`: Not authenticated
@@ -865,7 +888,7 @@ All repair endpoints are nested under vehicles: `/vehicles/{vehicle_id}/repairs/
   }
 }
 ```
-**Note**: `vin`, `phone`, and `pesel` can be `null`
+**Note**: `vin`, `phone`, `pesel`, `fuel_type`, `engine_capacity`, `engine_power`, and `registration_number` can be `null`
 
 ### VehicleBasicInfo
 ```json

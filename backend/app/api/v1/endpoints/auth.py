@@ -39,9 +39,9 @@ def login(mechanic: MechanicLogin, db: Session = Depends(get_db)):
         key="access_token",
         value=token,
         httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=60*60
+        secure=False,  
+        samesite="Lax",  
+        max_age=60*60*24*7
     )
     return response
 
