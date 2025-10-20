@@ -1,19 +1,20 @@
 #!/bin/bash
-# PostgreSQL Backup Script to AWS S3
 
-set -e  # Exit on error
+# LOAD .env
+export $(grep -v '^#' /home/administrator/MechBook/scripts/.env | xargs)
 
-# ====== CONFIGURATION ======
-DATE=$(date +%F_%H-%M-%S)
-BACKUP_DIR=/tmp/pg_backup
-S3_BUCKET="s3://mech-book-backup/postgres"
-DB_CONTAINER="postgres"
-DB_USER=$POSTGRES_USER
-
+# CREATE BACKUP DIR IF NOT EXISTS
 mkdir -p $BACKUP_DIR
 
-docker exec -t $DB_CONTAINER pg_dumpall -U $DB_USER > $BACKUP_DIR/mechbook_db_$DATE.sql
+DATE=$(date +'%Y-%m-%d') #every day night at 00:00
+BACKUP_NAME="pg_backup_$DATE.sql.gz"
+BACKUP_PATH="$BACKUP_DIR/$BACKUP_NAME"
 
-7z a -mx=9 $BACKUP_DIR/mechbook_db_$DATE.sql.7z $BACKUP_DIR/mechbook_db_$DATE.sql
+# 1) CREATE BACKUP
+docker exec $CONTAINER_NAME pg_dumpall -U $DB_USER | gzip > $BACKUP_PATH
 
-aws s3 cp $BACKUP_DIR/MECHBOOK_DB_$DATE.sql.7z $S3_BUCKET/mech-book-backup/
+# 2) UPLOAD TO S3
+aws s3 cp $BACKUP_PATH $S3_BUCKET
+
+# 3) DELETE LOC BACKUPS OLDER THAN 7 DAYS
+find $BACKUP_DIR -type f -name "*.gz" -mtime +7 -exec rm {} \;
