@@ -50,6 +50,9 @@ def get_mechanic(db: Session = Depends(get_db), mechanic_id: int = Depends(get_c
     db_mechanic = crud_mechanic.get_mechanic_by_id(db, mechanic_id)
     print(db_mechanic)
 
+    if not db_mechanic:
+        raise HTTPException(status_code=404, detail="Mechanic not found")
+    
     return MechanicOut.model_validate(db_mechanic)
 
 @router.post("/recover-password")
