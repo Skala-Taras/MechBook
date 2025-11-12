@@ -8,7 +8,6 @@ import string
 from app.crud import mechanic as crud_mechanic
 from app.core.security import create_password_reset_token, hash_password
 from app.core.mailer import send_email_async
-from app.core.config import settings
 from app.dependencies.db import get_db
 from app.models.password_reset_tokens import PasswordResetTokens
 from app.core.security import verify_password
@@ -68,13 +67,17 @@ class PasswordService:
             raise HTTPException(status_code=500, detail="Could not process request")
         
         # Send email with verification code
-        await send_email_async(
-            subject="Password Reset - Verification Code",
-            email_to=email,
-            body={"verification_code": verification_code}
-        )
-        
-        return {"message": "Verification code sent to your email"}
+        try:
+            await send_email_async(
+                subject="Password Reset - Verification Code",
+                email_to=email,
+                body={"verification_code": verification_code}
+            )
+            return {"message": "Verification code sent to your email"}
+        except Exception as e:
+            print(f"Email sending failed: {e}")
+            # For development - return code in response
+            return {"message": "Email service unavailable."}
 
     def verify_code(self, email: str, code: str):
         """
@@ -85,8 +88,8 @@ class PasswordService:
         db_token = self.db.query(PasswordResetTokens).filter(
             PasswordResetTokens.email == email,
             PasswordResetTokens.verification_code == code,
-            PasswordResetTokens.verified_at == None,
-            PasswordResetTokens.used_at == None
+            PasswordResetTokens.verified_at is None,
+            PasswordResetTokens.used_at is None
         ).order_by(PasswordResetTokens.created_at.desc()).first()
         
         if not db_token:
@@ -114,10 +117,8 @@ class PasswordService:
         User must have verified their code first.
         """
         # Find the token that was verified
-        token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
+        _ = hashlib.sha256(reset_token.encode()).hexdigest()
         
-        # We need to find by the original token_hash stored during recover_password
-        # For simplicity, we'll accept any verified token for the email
         from app.core.security import verify_password_reset_token
         token_data = verify_password_reset_token(reset_token)
         if not token_data:
@@ -128,8 +129,8 @@ class PasswordService:
         # Find most recent verified but unused token for this email
         db_token = self.db.query(PasswordResetTokens).filter(
             PasswordResetTokens.email == email,
-            PasswordResetTokens.verified_at != None,
-            PasswordResetTokens.used_at == None
+            PasswordResetTokens.verified_at is not None,
+            PasswordResetTokens.used_at is None
         ).order_by(PasswordResetTokens.verified_at.desc()).first()
         
         if not db_token:

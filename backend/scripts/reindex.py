@@ -6,12 +6,13 @@ backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-from sqlalchemy.orm import Session, joinedload
-from app.db.session import SessionLocal
-from app.models.clients import Clients
-from app.models.vehicles import Vehicles
-from app.services.search_engine_service import search_service
-from app.search.client import es_client
+# Imports must be after sys.path modification - ignore E402 for these
+from sqlalchemy.orm import Session, joinedload  # noqa: E402
+from app.db.session import SessionLocal  # noqa: E402
+from app.models.clients import Clients  # noqa: E402
+from app.models.vehicles import Vehicles  # noqa: E402
+from app.services.search_engine_service import search_service  # noqa: E402
+from app.search.client import es_client  # noqa: E402
 
 def reindex_all_data():
     """

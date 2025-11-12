@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     ENCRYPTION_KEY: str
 
     FRONTEND_URL: str = "http://localhost:3000"  
+    
+    # Cookie settings - for production use secure=True, for tests secure=False
+    COOKIE_SECURE: bool = True
+    COOKIE_SAMESITE: str = "None"  # "None", "Lax", or "Strict"
 
     MAIL_USERNAME: str
     MAIL_PASSWORD: str

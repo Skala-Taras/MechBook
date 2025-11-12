@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 
 from app.dependencies.jwt import get_current_mechanic_id_from_cookie
 from app.core.security import verify_password, create_access_jwt_token
+from app.core.config import settings
 from app.crud import mechanic as crud_mechanic
 from app.crud.mechanic import get_mechanic_by_email
 from app.dependencies.db import get_db
@@ -39,8 +40,8 @@ def login(mechanic: MechanicLogin, db: Session = Depends(get_db)):
         key="access_token",
         value=token,
         httponly=True,
-        secure=True,  
-        samesite="None",  
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
         max_age=60*60*24*7
     )
     return response

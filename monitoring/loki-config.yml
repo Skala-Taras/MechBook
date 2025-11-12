@@ -1,0 +1,22 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+storage_config:
+  filesystem:
+    directory: /loki
+  boltdb_shipper:
+    active_index_directory: /loki/boltdb-shipper-active
+    cache_location: /loki/boltdb-shipper-cache
+    shared_store: filesystem
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: boltdb_shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
