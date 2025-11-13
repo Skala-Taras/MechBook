@@ -14,6 +14,7 @@
 - [Authentication & Authorization](#authentication--authorization)
 - [Database Diagram](#database-diagram)
 - [API Documentation](#api-documentation)
+- [Monitoring & Observability](#monitoring--observability)
 ## Overview
 
 MechBook is a full-stack application that empowers automotive mechanics to manage their workshop operations efficiently. The system provides a secure, multi-tenant environment where each mechanic can manage their own clients, vehicles, and repair records independently.
@@ -86,7 +87,7 @@ MechBook is a full-stack application that empowers automotive mechanics to manag
                                 ▼
                        ┌─────────────────┐
                        │   Search        │
-                       │   (Elasticsearch)│
+                       │ (Elasticsearch) │
                        │                 │
                        │ • Fuzzy Search  │
                        │ • Multi-field   │
@@ -130,3 +131,25 @@ MechBook is a full-stack application that empowers automotive mechanics to manag
 
 ### Complete API Reference
 - **Detailed Documentation**: [API Documentation](./backend/API_DOC.md)
+
+## Monitoring & Observability
+
+The project includes a complete observability stack for production-ready monitoring and troubleshooting:
+
+### Monitoring Stack
+
+- **Prometheus**: Metrics collection and time-series storage
+- **Grafana**: Visualization dashboards and analytics
+- **Loki**: Centralized log aggregation
+- **Promtail**: Log shipper for Docker containers
+- **cAdvisor**: Container resource metrics
+- **Node Exporter**: Host system metrics
+
+### Key Features
+
+- **Application Metrics**: FastAPI exposes Prometheus metrics at `/metrics` endpoint (request rates, latency, error rates)
+- **System Monitoring**: Real-time CPU, memory, disk, and network metrics for all containers
+- **Log Aggregation**: Centralized logging with container-level filtering and search
+- **Dashboards**: Grafana dashboards for application performance and system resources
+- **Production Ready**: All monitoring services containerized and integrated with Docker Compose
+
