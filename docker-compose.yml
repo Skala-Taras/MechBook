@@ -181,6 +181,8 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+      - /cgroup:/cgroup:ro
+    privileged: true
     restart: unless-stopped
     networks:
       - app-network

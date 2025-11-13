@@ -70,8 +70,8 @@ async def recover_password(
 
 @router.post("/verify-code")
 def verify_code(
-    email: str = Body(...),
-    code: str = Body(...),
+    email: str = Body(..., embed=True),
+    code: str = Body(..., embed=True),
     password_service: PasswordService = Depends(PasswordService)
 ):
     """
