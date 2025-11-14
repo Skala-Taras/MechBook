@@ -28,3 +28,7 @@ class ChangePasswordRequest(BaseModel):
 class VerifyCodeRequest(BaseModel):
     email: EmailStr 
     code: constr(min_length=6, max_length=6, pattern=r'^\d+$')  
+
+class ResetPasswordRequest(BaseModel):
+    reset_token: str
+    new_password: constr(min_length=5, max_length=15)

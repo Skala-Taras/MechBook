@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.crud import mechanic as crud_mechanic
 from app.crud.mechanic import get_mechanic_by_email
 from app.dependencies.db import get_db
-from app.schemas.mechanic import MechanicCreate, MechanicOut, MechanicLogin, ChangePasswordRequest, VerifyCodeRequest
+from app.schemas.mechanic import MechanicCreate, MechanicOut, MechanicLogin, ChangePasswordRequest, VerifyCodeRequest, ResetPasswordRequest
 from app.services.password_service import PasswordService
 
 router = APIRouter()
@@ -82,27 +82,26 @@ def verify_code(
 
 @router.post("/reset-password")
 def reset_password(
-    reset_token: str = Body(...),
-    new_password: str = Body(...),
+    request: ResetPasswordRequest,
     password_service: PasswordService = Depends(PasswordService)
 ):
     """
     Step 3: Reset the password using the reset_token from verify-code.
     """
-    result = password_service.reset_password(reset_token, new_password)
+    result = password_service.reset_password(request.reset_token, request.new_password)
     return result
 
 
 @router.post("/change-password")
 def change_password(
-    data: ChangePasswordRequest = Body(...),
+    request: ChangePasswordRequest,
     password_service: PasswordService = Depends(PasswordService),
     mechanic_id: int = Depends(get_current_mechanic_id_from_cookie)
 ):
     """
     Change the password of the current mechanic.
     """
-    result = password_service.change_password(data.current_password, data.new_password, mechanic_id)
+    result = password_service.change_password(request.current_password, request.new_password, mechanic_id)
     return result
 
 @router.post("/logout")
