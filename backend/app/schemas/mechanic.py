@@ -26,5 +26,5 @@ class ChangePasswordRequest(BaseModel):
 
     
 class VerifyCodeRequest(BaseModel):
-    email: str
-    code: str
+    email: EmailStr 
+    code: constr(min_length=6, max_length=6, pattern=r'^\d+$')  

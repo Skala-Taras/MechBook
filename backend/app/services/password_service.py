@@ -84,15 +84,32 @@ class PasswordService:
         Verifies the 6-digit code sent to the user's email.
         Returns a session token if code is valid.
         """
+        email = email.strip().lower()
+        code = str(code).strip() 
+        
+        if not code.isdigit() or len(code) != 6:
+            print(f"Invalid code format received: '{code}' (length: {len(code)})")
+            raise HTTPException(status_code=400, detail="Invalid verification code format. Code must be exactly 6 digits.")
+        
+        print(f"Verifying code for email: {email}, code: '{code}' (type: {type(code).__name__})")
+        
         # Find the most recent unused code for this email
         db_token = self.db.query(PasswordResetTokens).filter(
             PasswordResetTokens.email == email,
             PasswordResetTokens.verification_code == code,
-            PasswordResetTokens.verified_at is None,
-            PasswordResetTokens.used_at is None
+            PasswordResetTokens.verified_at.is_(None),  
+            PasswordResetTokens.used_at.is_(None)       
         ).order_by(PasswordResetTokens.created_at.desc()).first()
         
         if not db_token:
+            all_codes = self.db.query(PasswordResetTokens).filter(
+                PasswordResetTokens.email == email
+            ).order_by(PasswordResetTokens.created_at.desc()).limit(5).all()
+            
+            print(f"No matching code found. Recent codes for {email}:")
+            for token in all_codes:
+                print(f"  - Code: '{token.verification_code}' (verified: {token.verified_at}, used: {token.used_at}, expires: {token.expires_at})")
+            
             raise HTTPException(status_code=400, detail="Invalid verification code")
         
         # Check if code has expired (15 minutes)
