@@ -39,6 +39,8 @@ class PasswordService:
         Generates a 6-digit verification code and sends it via email.
         Code expires in 15 minutes.
         """
+        # Normalize email
+        email = email.strip().lower()
         # Check if mechanic exists
         mechanic = crud_mechanic.get_mechanic_by_email(self.db, email)
         if not mechanic:
@@ -128,14 +130,12 @@ class PasswordService:
             "reset_token": reset_token
         }
     
+
     def reset_password(self, reset_token: str, new_password: str):
         """
         Resets the password using the token from verify_code.
         User must have verified their code first.
         """
-        # Find the token that was verified
-        _ = hashlib.sha256(reset_token.encode()).hexdigest()
-        
         from app.core.security import verify_password_reset_token
         token_data = verify_password_reset_token(reset_token)
         if not token_data:
@@ -154,6 +154,95 @@ class PasswordService:
             raise HTTPException(status_code=400, detail="No verified session found. Please verify your code first.")
         
         # Check if verification session has expired (5 minutes after verification)
+        if datetime.utcnow() > db_token.verified_at + timedelta(minutes=5):
+            raise HTTPException(status_code=400, detail="Reset session has expired. Please request a new code.")
+        
+        # Find mechanic
+        mechanic = crud_mechanic.get_mechanic_by_email(self.db, email)
+        if not mechanic:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Update password
+        hashed_new_password = hash_password(new_password)
+        crud_mechanic.update_mechanic_password(self.db, mechanic, hashed_new_password)
+        
+        # Mark token as used
+        db_token.used_at = datetime.utcnow()
+        self.db.commit()
+        print(f"Password reset for {email} at: {db_token.used_at}")
+        
+        return {"message": "Password successfully reset"}
+
+    def verify_code(self, email: str, code: str):
+        """
+        Verifies the 6-digit code sent to the user's email.
+        Returns a session token if code is valid.
+        """
+        email = email.strip().lower()
+        code = str(code).strip() 
+        
+        if not code.isdigit() or len(code) != 6:
+            print(f"Invalid code format received: '{code}' (length: {len(code)})")
+            raise HTTPException(status_code=400, detail="Invalid verification code format. Code must be exactly 6 digits.")
+        
+        print(f"Verifying code for email: {email}, code: '{code}' (type: {type(code).__name__})")
+        
+        # Find the most recent unused code for this email
+        db_token = self.db.query(PasswordResetTokens).filter(
+            PasswordResetTokens.email == email,
+            PasswordResetTokens.verification_code == code,
+            PasswordResetTokens.verified_at.is_(None),  
+            PasswordResetTokens.used_at.is_(None)       
+        ).order_by(PasswordResetTokens.created_at.desc()).first()
+        
+        if not db_token:
+            all_codes = self.db.query(PasswordResetTokens).filter(
+                PasswordResetTokens.email == email
+            ).order_by(PasswordResetTokens.created_at.desc()).limit(5).all()
+            
+            print(f"No matching code found. Recent codes for {email}:")
+            for token in all_codes:
+                print(f"  - Code: '{token.verification_code}' (verified: {token.verified_at}, used: {token.used_at}, expires: {token.expires_at})")
+            
+            raise HTTPException(status_code=400, detail="Invalid verification code")
+        
+        if datetime.utcnow() > db_token.expires_at:
+            raise HTTPException(status_code=400, detail="Verification code has expired")
+        
+        db_token.verified_at = datetime.utcnow()
+        self.db.commit()
+        
+        reset_token = create_password_reset_token(email=email)
+        
+        return {
+            "message": "Kod został zweryfikowany",
+            "reset_token": reset_token
+        }
+    
+    def reset_password(self, reset_token: str, new_password: str):
+        """
+        Resets the password using the token from verify_code.
+        User must have verified their code first.
+        """
+
+        _ = hashlib.sha256(reset_token.encode()).hexdigest()
+        
+        from app.core.security import verify_password_reset_token
+        token_data = verify_password_reset_token(reset_token)
+        if not token_data:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+        
+        email = token_data["email"]
+        
+        db_token = self.db.query(PasswordResetTokens).filter(
+            PasswordResetTokens.email == email,
+            PasswordResetTokens.verified_at is not None,
+            PasswordResetTokens.used_at is None
+        ).order_by(PasswordResetTokens.verified_at.desc()).first()
+        
+        if not db_token:
+            raise HTTPException(status_code=400, detail="No verified session found. Please verify your code first.")
+        
         if datetime.utcnow() > db_token.verified_at + timedelta(minutes=5):
             raise HTTPException(status_code=400, detail="Reset session has expired. Please request a new code.")
         
