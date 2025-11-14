@@ -153,3 +153,11 @@ The project includes a complete observability stack for production-ready monitor
 - **Dashboards**: Grafana dashboards for application performance and system resources
 - **Production Ready**: All monitoring services containerized and integrated with Docker Compose
 
+### Grafana Dashboard Screenshots
+
+![Grafana Dashboard 1](./Additional/grafana_screenshot_1.png)
+*Figure 1: Application performance metrics and request statistics*
+
+![Grafana Dashboard 2](./Additional/grafana_screenshot_2.png)
+*Figure 2: System resources and container monitoring*
+

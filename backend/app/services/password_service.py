@@ -139,27 +139,44 @@ class PasswordService:
         from app.core.security import verify_password_reset_token
         token_data = verify_password_reset_token(reset_token)
         if not token_data:
+            print(f"ERROR: Invalid or expired reset token")
             raise HTTPException(status_code=400, detail="Invalid or expired reset token")
         
-        email = token_data["email"]
-        
+        # Normalize email
+        email = token_data["email"].strip().lower()
+    
         # Find most recent verified but unused token for this email
         db_token = self.db.query(PasswordResetTokens).filter(
             PasswordResetTokens.email == email,
-            PasswordResetTokens.verified_at is not None,
-            PasswordResetTokens.used_at is None
+            PasswordResetTokens.verified_at.isnot(None),
+            PasswordResetTokens.used_at.is_(None)
         ).order_by(PasswordResetTokens.verified_at.desc()).first()
         
         if not db_token:
+            # Debug: show all tokens for this email
+            all_tokens = self.db.query(PasswordResetTokens).filter(
+                PasswordResetTokens.email == email
+            ).order_by(PasswordResetTokens.created_at.desc()).limit(5).all()
+            
+            print(f"ERROR: No verified session found for email: '{email}'")
+            print(f"DEBUG: All recent tokens for this email:")
+            for token in all_tokens:
+                print(f"  - Email: '{token.email}', verified_at: {token.verified_at}, used_at: {token.used_at}, expires_at: {token.expires_at}")
+            
             raise HTTPException(status_code=400, detail="No verified session found. Please verify your code first.")
         
         # Check if verification session has expired (5 minutes after verification)
+        time_since_verification = datetime.utcnow() - db_token.verified_at
+        print(f"DEBUG: Time since verification: {time_since_verification.total_seconds()} seconds")
+        
         if datetime.utcnow() > db_token.verified_at + timedelta(minutes=5):
+            print(f"ERROR: Reset session expired for email: '{email}'")
             raise HTTPException(status_code=400, detail="Reset session has expired. Please request a new code.")
         
         # Find mechanic
         mechanic = crud_mechanic.get_mechanic_by_email(self.db, email)
         if not mechanic:
+            print(f"ERROR: Mechanic not found for email: '{email}'")
             raise HTTPException(status_code=404, detail="User not found")
 
         # Update password
@@ -169,7 +186,6 @@ class PasswordService:
         # Mark token as used
         db_token.used_at = datetime.utcnow()
         self.db.commit()
-        print(f"Password reset for {email} at: {db_token.used_at}")
         
         return {"message": "Password successfully reset"}
 
