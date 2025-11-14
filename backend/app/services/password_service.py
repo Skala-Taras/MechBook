@@ -92,7 +92,7 @@ class PasswordService:
         
         if not code.isdigit() or len(code) != 6:
             print(f"Invalid code format received: '{code}' (length: {len(code)})")
-            raise HTTPException(status_code=400, detail="Invalid verification code format. Code must be exactly 6 digits.")
+            raise HTTPException(status_code=400, detail="Nieprawidłowy format kodu weryfikacyjnego. Kod musi składać się z dokładnie 6 cyfr.")
         
         print(f"Verifying code for email: {email}, code: '{code}' (type: {type(code).__name__})")
         
@@ -113,11 +113,11 @@ class PasswordService:
             for token in all_codes:
                 print(f"  - Code: '{token.verification_code}' (verified: {token.verified_at}, used: {token.used_at}, expires: {token.expires_at})")
             
-            raise HTTPException(status_code=400, detail="Invalid verification code")
+            raise HTTPException(status_code=400, detail="Nieprawidłowy kod weryfikacyjny")
         
         # Check if code has expired (15 minutes)
         if datetime.utcnow() > db_token.expires_at:
-            raise HTTPException(status_code=400, detail="Verification code has expired")
+            raise HTTPException(status_code=400, detail="Kod weryfikacyjny wygasł")
         
         # Mark code as verified
         db_token.verified_at = datetime.utcnow()
@@ -139,12 +139,11 @@ class PasswordService:
         from app.core.security import verify_password_reset_token
         token_data = verify_password_reset_token(reset_token)
         if not token_data:
-            print(f"ERROR: Invalid or expired reset token")
-            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+            print("ERROR: Invalid or expired reset token")
+            raise HTTPException(status_code=400, detail="Nieprawidłowy lub wygasły token resetowania hasła")
         
         # Normalize email - MUST match what verify_code does
         email = token_data["email"].strip().lower()
-        print(f"DEBUG reset_password: Looking for verified session for email: '{email}'")
         
         # Find most recent verified but unused token for this email
         db_token = self.db.query(PasswordResetTokens).filter(
@@ -159,8 +158,6 @@ class PasswordService:
                 PasswordResetTokens.email == email
             ).order_by(PasswordResetTokens.created_at.desc()).limit(5).all()
             
-            print(f"ERROR: No verified session found for email: '{email}'")
-            print(f"DEBUG: All recent tokens for this email:")
             for token in all_tokens:
                 print(f"  - Email: '{token.email}', verified_at: {token.verified_at}, used_at: {token.used_at}, expires_at: {token.expires_at}")
             
