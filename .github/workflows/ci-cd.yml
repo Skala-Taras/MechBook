@@ -4,11 +4,13 @@ on:
   push:
     branches: [ "master" ]
     paths: 
-      - 'backend/**'
+      - "backend/app/**/*.py"
+      - "backend/tests/**/*.py"
   pull_request:
     branches: [ "master" ]
     paths: 
-      - 'backend/**'
+      - "backend/app/**/*.py"
+      - "backend/tests/**/*.py"
 
 jobs:
   # CI jobs
