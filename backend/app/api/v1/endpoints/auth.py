@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.crud import mechanic as crud_mechanic
 from app.crud.mechanic import get_mechanic_by_email
 from app.dependencies.db import get_db
-from app.schemas.mechanic import MechanicCreate, MechanicOut, MechanicLogin, ChangePasswordRequest
+from app.schemas.mechanic import MechanicCreate, MechanicOut, MechanicLogin, ChangePasswordRequest, VerifyCodeRequest
 from app.services.password_service import PasswordService
 
 router = APIRouter()
@@ -70,15 +70,14 @@ async def recover_password(
 
 @router.post("/verify-code")
 def verify_code(
-    email: str = Body(..., embed=True),
-    code: str = Body(..., embed=True),
+    request: VerifyCodeRequest,
     password_service: PasswordService = Depends(PasswordService)
 ):
     """
     Step 2: Verify the 6-digit code sent to email.
     Returns a reset_token if successful, which can be used to reset password.
     """
-    result = password_service.verify_code(email, code)
+    result = password_service.verify_code(request.email, request.code)
     return result
 
 @router.post("/reset-password")
