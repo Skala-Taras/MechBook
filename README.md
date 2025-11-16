@@ -74,26 +74,12 @@ MechBook is a full-stack application that empowers automotive mechanics to manag
 
 ## Architecture
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend       │    │   Database      │
-│   (Next.js)     │◄──►│   (FastAPI)     │◄──►│   (PostgreSQL)  │
-│                 │    │                 │    │                 │
-│ • React UI      │    │ • REST API      │    │ • Multi-tenant  │
-│ • TypeScript    │    │ • JWT Auth      │    │ • Encrypted     │
-│ • Tailwind CSS  │    │ • SQLAlchemy    │    │ • Backup Script │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   Search        │
-                       │ (Elasticsearch) │
-                       │                 │
-                       │ • Fuzzy Search  │
-                       │ • Multi-field   │
-                       │ • Real-time     │
-                       └─────────────────┘
-```
+
+![Opis obrazka](./Additional/Softwere%20Architecture.png)
+
+
+
+
 
 ### First Steps
 
