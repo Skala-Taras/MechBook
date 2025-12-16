@@ -3,9 +3,9 @@ from app.dependencies.jwt import get_current_mechanic_id_from_cookie
 from app.schemas.client import ClientCreate, ClientUpdate, ClientExtendedInfo
 from app.services.client_service import ClientService
 from app.schemas.vehicle import VehicleBasicInfoForClient
-
+import logging
 router = APIRouter()
-
+logger = logging.getLogger(__name__)
 @router.get("/", response_model=list[ClientExtendedInfo])
 def list_clients(
     page: int = 1,
@@ -54,11 +54,11 @@ def create_client(
         return client_service.create_new_client(client_data, mechanic_id)
     except ValueError as e:
         error_msg = str(e)
-        # Sprawdź czy to błąd duplikatu (conflict) czy inny błąd walidacji
         if "already exists" in error_msg:
             raise HTTPException(status_code=409, detail=error_msg)
         raise HTTPException(status_code=400, detail=error_msg)
-    except Exception:
+    except Exception as e:
+        logger.error(f"CRITICAL ERROR in create_client: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 @router.get("/{client_id}", response_model=ClientExtendedInfo)
