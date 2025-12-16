@@ -1,0 +1,159 @@
+- name: Deploy MechBook Application
+  hosts: serwer
+  become: yes  
+  vars_files:
+    - vars.yml
+
+  tasks:
+  
+    # --- PROJECT DEPLOYMENT ---
+    
+    - name: Create project directory
+      file:
+        path: "{{ remote_project_dir }}"
+        state: directory
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+
+    - name: Copy project ZIP from local machine to server
+      copy:
+        src: "{{ local_zip_path }}"
+        dest: "{{ remote_project_dir }}/MechBook.zip"
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+
+    - name: Unzip the project
+      unarchive:
+        src: "{{ remote_project_dir }}/MechBook.zip"
+        dest: "{{ remote_project_dir }}"
+        remote_src: yes
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+
+
+    # --- AWS INSTALATION ---
+
+    - name: Download and install AWS CLI v2
+      block:
+        - name: Download AWS CLI v2 zip
+          get_url:
+            url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+            dest: "/tmp/awscliv2.zip"
+
+        - name: Unzip AWS CLI v2
+          unarchive:
+            src: "/tmp/awscliv2.zip"
+            dest: "/tmp"
+            remote_src: yes
+
+        - name: Run AWS CLI installer
+          command: "/tmp/aws/install --update"
+          args:
+            creates: /usr/local/bin/aws
+          register: aws_install
+          changed_when: "'You can now run' in aws_install.stdout"
+
+        - name: Verify AWS CLI installation
+          command: "aws --version"
+          register: aws_cli_version
+    
+        - name: Display AWS CLI version
+          debug:
+            msg: "{{ aws_cli_version.stdout }}"
+
+    # --- AWS CONFIGURATION ---
+        
+    - name: Create .aws directory for user {{ user_name }}
+      file:
+        path: "/home/{{ user_name }}/.aws"  
+        state: directory
+        mode: '0700'
+        owner: "{{ user_name }}"          
+        group: "{{ user_name }}"
+
+    - name: Create AWS credentials file
+      copy:
+        dest: "/home/{{ user_name }}/.aws/credentials"
+        mode: '0600'
+        owner: "{{ user_name }}"           
+        group: "{{ user_name }}"
+        content: |
+          [default]
+          aws_access_key_id = {{ aws_access_key_id }}
+          aws_secret_access_key = {{ aws_secret_access_key }}
+
+    - name: Create AWS config file
+      copy:
+        dest: "/home/{{ user_name }}/.aws/config"
+        mode: '0600'
+        owner: "{{ user_name }}"           
+        group: "{{ user_name }}"
+        content: |
+          [default]
+          region = {{ aws_region }}
+
+    # --- SCRIPT PERMISSIONS ---
+    - name: Make utility scripts executable (+x)
+      file:
+        path: "{{ remote_project_dir }}/backend/scripts/{{ item }}"
+        mode: '0755'
+        owner: "{{ user_name }}"
+      loop:
+        - pg_backup_script.sh
+        - restore.sh
+
+
+    # --- SSL CERTIFICATE BOOTSTRAP ---
+
+    - name: Check if certificate already exists
+      stat:
+        path: "{{ remote_project_dir }}/certbot/conf/live/{{ domain_name }}/fullchain.pem"
+      register: cert_stat
+
+    - name: Obtain initial SSL certificate
+      command: >
+        docker run --rm 
+        -p 80:80 
+        -v "{{ remote_project_dir }}/certbot/conf:/etc/letsencrypt" 
+        -v "{{ remote_project_dir }}/certbot/www:/var/www/certbot" 
+        certbot/certbot certonly 
+        --standalone 
+        --non-interactive 
+        --agree-tos 
+        --email {{ cert_email }} 
+        -d {{ domain_name }} 
+        -d www.{{ domain_name }} 
+        -d api.{{ domain_name }}
+        -d temp.{{ domain_name }}
+      when: not cert_stat.stat.exists
+    
+    # --- START APPLICATION ---                                               
+
+    - name: Start Docker Compose services
+      community.docker.docker_compose_v2:
+        project_src: "{{ remote_project_dir }}"
+        state: present
+        build: always
+        remove_orphans: yes
+      become_user: "{{ user_name }}"   
+
+    # --- CRON (BACKUP) ---           
+    - name: Dodaj CRON job - Backup Postgres
+      cron:
+        name: "Backup Postgres to AWS"
+        minute: "{{ backup_schedule_minute }}"
+        hour: "{{ backup_schedule_hour }}"
+        user: "{{ user_name }}"
+        job: "/bin/bash {{ remote_project_dir }}/backend/scripts/pg_backup_script.sh >> \
+        /home/{{ user_name }}/backup.log 2>&1"
+
+    - name: Run Restore Script
+      command: "/bin/bash {{ remote_project_dir }}/backend/scripts/restore.sh {{ restore_file }}"
+      become_user: "{{ user_name }}"
+      register: restore_result
+      when: restore_file is defined
+    
+    - name: Display Restore Output
+      debug:
+        msg: "{{ restore_result.stdout_lines }}"
+      when: restore_file is defined

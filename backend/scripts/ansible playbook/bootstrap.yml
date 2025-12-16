@@ -1,0 +1,98 @@
+- name: VPS Production Setup
+  hosts: serwer
+  become: yes  
+
+  vars_files:
+    - vars.yml
+  tasks:
+  # --- SYSTEM CONFIGURATION ---
+    - name: Update apt cache and upgrade system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install essential packages
+      apt:
+        name:
+          - curl
+          - git
+          - unzip
+          - ufw         
+          - fail2ban    
+          - docker.io
+          - docker-compose-v2
+        state: present
+ 
+    # --- SECURITY & USER SETUP ---
+    
+    - name: Create a secure user ({{ user_name }})
+      user:
+        name: "{{ user_name }}"
+        shell: /bin/bash
+        groups: docker,sudo
+        append: yes
+
+    - name: Allow sudo without password
+      copy:
+        dest: "/etc/sudoers.d/{{ user_name }}"
+        content: "{{ user_name }} ALL=(ALL) NOPASSWD:ALL"
+        mode: '0440'
+    
+
+    - name: Deploy SSH public key for the user
+      authorized_key:
+        user: "{{ user_name }}"
+        state: present
+        key: "{{ lookup('file', '~/MechBookInfrastructure/files/id_rsa.pub') }}"
+
+    - name: Configure UFW Firewall
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - '{{ ssh_port }}'  
+        - '80'   
+        - '443'  
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Disable remote login for root
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: '^#?PermitRootLogin yes'
+        line: 'PermitRootLogin no'
+
+    - name: Change the SSH port
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: '^#?Port'
+        line: 'Port "{{ ssh_port }}"'
+
+    - name: Change PasswordAuthentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+
+    - name: Restart the SSH daemon
+      ansible.builtin.systemd:
+        state: restarted
+        name: ssh
+
+
+    - name: Reboot server asynchronously (without waiting)
+      shell: "sleep 5 && /sbin/reboot"
+      async: 1
+      poll: 0
+      ignore_errors: true
+
+    - name: Installation Complete
+      debug:
+        msg: "Server is restarting wait a minute."
